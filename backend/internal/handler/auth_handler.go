@@ -90,3 +90,61 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		},
 	})
 }
+
+// loginRequest merepresentasikan bentuk JSON yang dikirim frontend untuk login
+type loginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
+// Login menangani POST /auth/login
+func (h *AuthHandler) Login(c *gin.Context) {
+	var req loginRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": err.Error(),
+			},
+		})
+		return
+	}
+
+	result, err := h.authService.Login(c.Request.Context(), service.LoginInput{
+		Email:    req.Email,
+		Password: req.Password,
+	})
+
+	if err != nil {
+		if errors.Is(err, repository.ErrInvalidCredentials) {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INVALID_CREDENTIALS",
+					"message": "Email atau kata sandi salah",
+				},
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_SERVER_ERROR",
+				"message": "Terjadi kesalahan saat login, silakan coba lagi",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"user_id": result.UserID,
+			"email":   result.Email,
+			"token":   result.AccessToken,
+		},
+	})
+}

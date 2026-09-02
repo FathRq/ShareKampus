@@ -7,6 +7,7 @@ import (
 
 	"github.com/FathRq/ShareKampus/backend/internal/config"
 	"github.com/FathRq/ShareKampus/backend/internal/handler"
+	"github.com/FathRq/ShareKampus/backend/internal/middleware"
 	"github.com/FathRq/ShareKampus/backend/internal/repository"
 	"github.com/FathRq/ShareKampus/backend/internal/service"
 	"github.com/gin-gonic/gin"
@@ -35,6 +36,10 @@ func main() {
 	// --- Handler layer ---
 	campusLocationHandler := handler.NewCampusLocationHandler(campusLocationRepo)
 	authHandler := handler.NewAuthHandler(authService)
+	userHandler := handler.NewUserHandler(userRepo)
+
+	// --- Middleware ---
+	requireAuth := middleware.AuthMiddleware(cfg.SupabaseJWKSURL)
 
 	router := gin.Default()
 
@@ -52,8 +57,13 @@ func main() {
 		})
 	})
 
+	// Rute publik (tidak butuh login)
 	router.GET("/campus-locations", campusLocationHandler.ListLocations)
 	router.POST("/auth/register", authHandler.Register)
+	router.POST("/auth/login", authHandler.Login)
+
+	// Rute privat (WAJIB login -- middleware requireAuth dipasang sebagai parameter tambahan)
+	router.GET("/users/me", requireAuth, userHandler.Me)
 
 	router.Run(":" + cfg.Port)
 }

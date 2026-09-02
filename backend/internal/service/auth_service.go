@@ -82,3 +82,30 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*Regis
 		AccessToken: signUpResp.AccessToken,
 	}, nil
 }
+
+// LoginInput menampung data yang dibutuhkan untuk login
+type LoginInput struct {
+	Email    string
+	Password string
+}
+
+// LoginOutput adalah hasil setelah login berhasil
+type LoginOutput struct {
+	UserID      string
+	Email       string
+	AccessToken string
+}
+
+// Login memverifikasi email+password lewat Supabase Auth
+func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginOutput, error) {
+	signInResp, err := s.authClient.SignIn(input.Email, input.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	return &LoginOutput{
+		UserID:      signInResp.UserID,
+		Email:       signInResp.Email,
+		AccessToken: signInResp.AccessToken,
+	}, nil
+}
