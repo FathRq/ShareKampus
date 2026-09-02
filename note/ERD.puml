@@ -1,0 +1,126 @@
+@startuml ShareKampus_ERD
+left to right direction
+hide circle
+skinparam linetype ortho
+skinparam entity {
+    BackgroundColor #F8F8F8
+    BorderColor Black
+}
+
+entity "Campuses" as campuses {
+    *id            : uuid <<PK>>
+
+    --
+    name           : varchar
+    email_domain   : varchar
+
+    created_at     : timestamp
+}
+
+entity "Campus_Locations" as campus_locations {
+    *id            : uuid <<PK>>
+
+    --
+    campus_id      : uuid <<FK>>
+
+    name           : varchar
+    location       : geography(point)
+    radius_meter   : integer
+
+    created_at     : timestamp
+}
+
+entity "Users" as users {
+    *id                 : uuid <<PK, FK -> auth.users.id>>
+
+    --
+    campus_id           : uuid <<FK>>
+    campus_location_id  : uuid <<FK, nullable>>
+
+    full_name           : varchar
+    email               : varchar
+    avatar_url          : text <<nullable>>
+    phone_number        : varchar <<nullable>>
+    default_location    : geography(point) <<nullable>>
+    trust_score         : numeric
+    total_saved_amount  : numeric
+
+    created_at          : timestamp
+    updated_at          : timestamp
+}
+
+entity "Items" as items {
+    *id                 : uuid <<PK>>
+
+    --
+    owner_id            : uuid <<FK>>
+
+    title               : varchar
+    description         : text <<nullable>>
+    category            : enum
+    transaction_type    : enum
+    market_price        : numeric
+    photo_url           : text <<nullable>>
+    location            : geography(point)
+    status              : enum
+    max_loan_days       : integer
+
+    created_at          : timestamp
+    updated_at          : timestamp
+}
+
+entity "Transactions" as transactions {
+    *id                 : uuid <<PK>>
+
+    --
+    item_id             : uuid <<FK>>
+    borrower_id         : uuid <<FK>>
+    lender_id           : uuid <<FK>>
+
+    status              : enum
+    actual_cost         : numeric
+    agreed_return_date  : date <<nullable>>
+    returned_at         : timestamp <<nullable>>
+    meeting_point       : geography(point) <<nullable>>
+    notes               : text <<nullable>>
+
+    created_at          : timestamp
+    updated_at          : timestamp
+}
+
+entity "Reviews" as reviews {
+    *id                 : uuid <<PK>>
+
+    --
+    transaction_id      : uuid <<FK>>
+    reviewer_id         : uuid <<FK>>
+    reviewee_id         : uuid <<FK>>
+
+    rating              : smallint
+    comment             : text <<nullable>>
+
+    created_at          : timestamp
+}
+
+
+campuses ||--o{ users : menaungi
+
+campuses ||--o{ campus_locations : memiliki
+
+campus_locations |o--o{ users : terdaftar_di
+
+users ||--o{ items : memiliki
+
+users ||--o{ transactions : meminjam
+
+users ||--o{ transactions : meminjamkan
+
+items ||--o{ transactions : ditransaksikan
+
+transactions ||--o{ reviews : menghasilkan
+
+users ||--o{ reviews : memberi
+
+users ||--o{ reviews : menerima
+
+@enduml
