@@ -28,15 +28,18 @@ func main() {
 	campusLocationRepo := repository.NewCampusLocationRepository(pool)
 	campusRepo := repository.NewCampusRepository(pool)
 	userRepo := repository.NewUserRepository(pool)
+	itemRepo := repository.NewItemRepository(pool)
 	authClient := repository.NewSupabaseAuthClient(cfg.SupabaseURL, cfg.SupabasePublishableKey)
 
 	// --- Service layer ---
 	authService := service.NewAuthService(campusRepo, userRepo, authClient)
+	itemService := service.NewItemService(itemRepo)
 
 	// --- Handler layer ---
 	campusLocationHandler := handler.NewCampusLocationHandler(campusLocationRepo)
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userRepo)
+	itemHandler := handler.NewItemHandler(itemService)
 
 	// --- Middleware ---
 	requireAuth := middleware.AuthMiddleware(cfg.SupabaseJWKSURL)
@@ -64,6 +67,6 @@ func main() {
 
 	// Rute privat (WAJIB login -- middleware requireAuth dipasang sebagai parameter tambahan)
 	router.GET("/users/me", requireAuth, userHandler.Me)
-
+	router.POST("/items", requireAuth, itemHandler.Create)
 	router.Run(":" + cfg.Port)
 }
