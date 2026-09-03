@@ -19,15 +19,15 @@ func NewItemHandler(itemService *service.ItemService) *ItemHandler {
 
 // createItemRequest merepresentasikan bentuk JSON yang dikirim frontend untuk membuat listing
 type createItemRequest struct {
-	Title           string  `json:"title" binding:"required"`
-	Description     string  `json:"description"`
-	Category        string  `json:"category" binding:"required"`
-	TransactionType string  `json:"transaction_type" binding:"required"`
-	MarketPrice     float64 `json:"market_price" binding:"required,gte=0"`
-	PhotoURL        string  `json:"photo_url"`
-	Latitude        float64 `json:"latitude" binding:"required"`
-	Longitude       float64 `json:"longitude" binding:"required"`
-	MaxLoanDays     int     `json:"max_loan_days"`
+	Title           string   `json:"title" binding:"required"`
+	Description     string   `json:"description"`
+	Category        string   `json:"category" binding:"required"`
+	TransactionType string   `json:"transaction_type" binding:"required"`
+	MarketPrice     float64  `json:"market_price" binding:"required,gte=0"`
+	PhotoURLs       []string `json:"photo_urls"`
+	Latitude        float64  `json:"latitude" binding:"required"`
+	Longitude       float64  `json:"longitude" binding:"required"`
+	MaxLoanDays     int      `json:"max_loan_days"`
 }
 
 // Create menangani POST /items
@@ -45,7 +45,6 @@ func (h *ItemHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// Ambil user_id dari token (dititip AuthMiddleware) -- inilah pemilik barangnya
 	ownerID, _ := c.Get(string(middleware.UserIDContextKey))
 
 	itemID, err := h.itemService.CreateItem(c.Request.Context(), service.CreateItemInput{
@@ -55,7 +54,7 @@ func (h *ItemHandler) Create(c *gin.Context) {
 		Category:        req.Category,
 		TransactionType: req.TransactionType,
 		MarketPrice:     req.MarketPrice,
-		PhotoURL:        req.PhotoURL,
+		PhotoURLs:       req.PhotoURLs,
 		Latitude:        req.Latitude,
 		Longitude:       req.Longitude,
 		MaxLoanDays:     req.MaxLoanDays,

@@ -33,7 +33,7 @@ type CreateItemInput struct {
 	Category        string
 	TransactionType string
 	MarketPrice     float64
-	PhotoURL        string
+	PhotoURLs       []string
 	Latitude        float64
 	Longitude       float64
 	MaxLoanDays     int
@@ -69,7 +69,7 @@ func (s *ItemService) CreateItem(ctx context.Context, input CreateItemInput) (st
 		Category:        input.Category,
 		TransactionType: input.TransactionType,
 		MarketPrice:     input.MarketPrice,
-		PhotoURL:        input.PhotoURL,
+		PhotoURLs:       input.PhotoURLs,
 		Latitude:        input.Latitude,
 		Longitude:       input.Longitude,
 		MaxLoanDays:     maxLoanDays,
