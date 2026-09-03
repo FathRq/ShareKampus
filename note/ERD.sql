@@ -76,13 +76,13 @@ CREATE TYPE item_status AS ENUM ('available', 'on_transaction', 'unavailable');
 
 CREATE TABLE items (
     id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    resource_code       VARCHAR(20) UNIQUE,                 -- ex: 'SK-BK-00125', auto-generate lewat trigger
     owner_id            UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title               VARCHAR(150) NOT NULL,
     description         TEXT,
     category            item_category NOT NULL,
     transaction_type    item_transaction_type NOT NULL DEFAULT 'pinjam',
     market_price        NUMERIC(12,2) NOT NULL DEFAULT 0,   -- estimasi harga baru (dipakai di formula E_saved)
-    photo_url           TEXT,
     location            GEOGRAPHY(Point, 4326) NOT NULL,     -- titik serah-terima/lokasi barang
     status              item_status NOT NULL DEFAULT 'available',
     max_loan_days       INTEGER NOT NULL DEFAULT 7,          -- batas hari pinjam sebelum dianggap overdue
@@ -94,6 +94,21 @@ CREATE INDEX idx_items_owner_id ON items(owner_id);
 CREATE INDEX idx_items_location ON items USING GIST (location);
 CREATE INDEX idx_items_status ON items(status);
 CREATE INDEX idx_items_category ON items(category);
+
+-- ============================================================================
+-- 3B. TABLE: item_photos
+-- Satu barang (items) bisa punya BANYAK foto -- setiap baris di sini adalah
+-- satu foto, diurutkan lewat sort_order (foto pertama = cover/thumbnail utama).
+-- ============================================================================
+CREATE TABLE item_photos (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    item_id         UUID NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    photo_url       TEXT NOT NULL,
+    sort_order      INTEGER NOT NULL DEFAULT 0,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_item_photos_item_id ON item_photos(item_id);
 
 -- ============================================================================
 -- 4. TABLE: transactions
@@ -303,13 +318,50 @@ CREATE TRIGGER trg_transactions_updated_at BEFORE UPDATE ON transactions
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- ============================================================================
+-- 9B. TRIGGER: Auto-generate resource_code (format: SK-<KATEGORI>-<5 digit>)
+-- ============================================================================
+CREATE SEQUENCE IF NOT EXISTS items_resource_seq START 1;
+
+CREATE OR REPLACE FUNCTION generate_resource_code()
+RETURNS TRIGGER AS $$
+DECLARE
+    cat_code    TEXT;
+    seq_number  BIGINT;
+BEGIN
+    cat_code := CASE NEW.category
+        WHEN 'buku' THEN 'BK'
+        WHEN 'alat_lab' THEN 'AL'
+        WHEN 'elektronik' THEN 'EL'
+        ELSE 'LN'
+    END;
+
+    seq_number := nextval('items_resource_seq');
+
+    NEW.resource_code := 'SK-' || cat_code || '-' || LPAD(seq_number::TEXT, 5, '0');
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_generate_resource_code
+    BEFORE INSERT ON items
+    FOR EACH ROW
+    WHEN (NEW.resource_code IS NULL)
+    EXECUTE FUNCTION generate_resource_code();
+
+-- ============================================================================
 -- 10. ROW LEVEL SECURITY (RLS) — DASAR (aktifkan & sesuaikan policy di Supabase)
 -- ============================================================================
 ALTER TABLE campus_locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_photos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+
+-- Foto barang bersifat publik (siapa saja boleh lihat, sama seperti item-nya)
+CREATE POLICY item_photos_select_all ON item_photos
+    FOR SELECT USING (true);
 
 -- Daftar lokasi kampus bersifat publik (dipakai dropdown pilihan saat registrasi)
 CREATE POLICY campus_locations_select_all ON campus_locations

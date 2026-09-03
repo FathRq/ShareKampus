@@ -53,6 +53,7 @@ entity "Items" as items {
     *id                 : uuid <<PK>>
 
     --
+    resource_code       : varchar <<unique>>
     owner_id            : uuid <<FK>>
 
     title               : varchar
@@ -60,13 +61,24 @@ entity "Items" as items {
     category            : enum
     transaction_type    : enum
     market_price        : numeric
-    photo_url           : text <<nullable>>
     location            : geography(point)
     status              : enum
     max_loan_days       : integer
 
     created_at          : timestamp
     updated_at          : timestamp
+}
+
+entity "Item_Photos" as item_photos {
+    *id                 : uuid <<PK>>
+
+    --
+    item_id             : uuid <<FK>>
+
+    photo_url           : text
+    sort_order          : integer
+
+    created_at          : timestamp
 }
 
 entity "Transactions" as transactions {
@@ -110,6 +122,8 @@ campuses ||--o{ campus_locations : memiliki
 campus_locations |o--o{ users : terdaftar_di
 
 users ||--o{ items : memiliki
+
+items ||--o{ item_photos : memiliki
 
 users ||--o{ transactions : meminjam
 
