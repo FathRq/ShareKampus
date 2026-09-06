@@ -75,3 +75,46 @@ func (r *ItemRepository) Create(ctx context.Context, input CreateItemInput) (str
 
 	return itemID, nil
 }
+
+// NearbyItem merepresentasikan satu baris hasil dari fungsi get_nearby_items di database
+type NearbyItem struct {
+	ItemID          string  `json:"item_id"`
+	ResourceCode    *string `json:"resource_code"`
+	Title           string  `json:"title"`
+	Category        string  `json:"category"`
+	TransactionType string  `json:"transaction_type"`
+	MarketPrice     float64 `json:"market_price"`
+	CoverPhotoURL   *string `json:"cover_photo_url"`
+	Status          string  `json:"status"`
+	OwnerID         string  `json:"owner_id"`
+	OwnerName       string  `json:"owner_name"`
+	OwnerTrustScore float64 `json:"owner_trust_score"`
+	DistanceMeter   float64 `json:"distance_meter"`
+}
+
+// FindNearby memanggil fungsi PostGIS get_nearby_items untuk mencari barang
+// dalam radius tertentu dari titik koordinat pengguna
+func (r *ItemRepository) FindNearby(ctx context.Context, lat, lng float64, radiusMeter int, category *string) ([]NearbyItem, error) {
+	query := `SELECT * FROM get_nearby_items($1, $2, $3, $4)`
+
+	rows, err := r.db.Query(ctx, query, lat, lng, radiusMeter, category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []NearbyItem
+	for rows.Next() {
+		var item NearbyItem
+		if err := rows.Scan(
+			&item.ItemID, &item.ResourceCode, &item.Title, &item.Category, &item.TransactionType,
+			&item.MarketPrice, &item.CoverPhotoURL, &item.Status, &item.OwnerID,
+			&item.OwnerName, &item.OwnerTrustScore, &item.DistanceMeter,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+
+	return items, rows.Err()
+}

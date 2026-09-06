@@ -74,4 +74,28 @@ func (s *ItemService) CreateItem(ctx context.Context, input CreateItemInput) (st
 		Longitude:       input.Longitude,
 		MaxLoanDays:     maxLoanDays,
 	})
+
+}
+
+// FindNearbyInput menampung parameter pencarian barang terdekat
+type FindNearbyInput struct {
+	Latitude    float64
+	Longitude   float64
+	RadiusMeter int
+	Category    *string
+}
+
+// FindNearby mencari barang dalam radius tertentu dari lokasi pengguna
+func (s *ItemService) FindNearby(ctx context.Context, input FindNearbyInput) ([]repository.NearbyItem, error) {
+	radius := input.RadiusMeter
+	if radius == 0 {
+		radius = 2500 // default 2.5km sesuai FR-02 di PRD.md
+	}
+
+	// Kalau ada filter kategori, validasi dulu -- sama seperti validasi di CreateItem
+	if input.Category != nil && !validCategories[*input.Category] {
+		return nil, ErrInvalidCategory
+	}
+
+	return s.itemRepo.FindNearby(ctx, input.Latitude, input.Longitude, radius, input.Category)
 }

@@ -167,11 +167,12 @@ CREATE OR REPLACE FUNCTION get_nearby_items(
 )
 RETURNS TABLE (
     item_id         UUID,
+    resource_code   VARCHAR,
     title           VARCHAR,
     category        item_category,
     transaction_type item_transaction_type,
     market_price    NUMERIC,
-    photo_url       TEXT,
+    cover_photo_url TEXT,
     status          item_status,
     owner_id        UUID,
     owner_name      VARCHAR,
@@ -184,11 +185,17 @@ BEGIN
     RETURN QUERY
     SELECT
         i.id,
+        i.resource_code,
         i.title,
         i.category,
         i.transaction_type,
         i.market_price,
-        i.photo_url,
+        (
+            SELECT ip.photo_url FROM item_photos ip
+            WHERE ip.item_id = i.id
+            ORDER BY ip.sort_order ASC
+            LIMIT 1
+        ) AS cover_photo_url,
         i.status,
         u.id,
         u.full_name,
