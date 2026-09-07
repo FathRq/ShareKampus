@@ -14,15 +14,19 @@ flowchart LR
     end
 
     subgraph Frontend_Hosting["Frontend Hosting"]
-        B["Vercel<br/>(Static Build + Edge CDN)"]
+        B["Static Hosting<br/>(HTTPS)"]
     end
 
     subgraph Backend["Backend Layer"]
-        C["Golang<br/>(Gin / Fiber Framework)<br/>REST API"]
+        C["Golang<br/>(Gin Framework)<br/>REST API"]
     end
 
     subgraph Backend_Hosting["Backend Hosting"]
-        D["Render / Koyeb /<br/>Cloudflare Tunnel"]
+        D["Server Hosting<br/>(HTTPS)"]
+    end
+
+    subgraph Auth["Auth Layer"]
+        F["Supabase Auth<br/>(Email/Password)"]
     end
 
     subgraph Database["Database Layer"]
@@ -32,7 +36,9 @@ flowchart LR
     A -->|"HTTPS Build"| B
     B -->|"Fetch REST API<br/>(JSON over HTTPS)"| C
     C -->|"Deployed on"| D
+    C -->|"Proxy register/login +<br/>Verifikasi JWT via JWKS"| F
     C -->|"SQL Queries +<br/>Geospatial Functions<br/>(ST_DWithin, Haversine)"| E
+    F -->|"User records"| E
 ```
 
 ### 1.1 Alasan Pemilihan Stack
@@ -40,9 +46,10 @@ flowchart LR
 | Layer | Teknologi | Alasan |
 |-------|-----------|--------|
 | Frontend | React.js + Tailwind + Shadcn UI | Kecepatan development komponen UI standar (bottom sheet, badge, card) tanpa membangun dari nol; Tailwind mempercepat implementasi Design System. |
-| Backend | Golang (Gin/Fiber) | Performa tinggi untuk kueri geospasial yang sering dipanggil (katalog nearby items), concurrency native Go cocok untuk beban request paralel saat demo. |
+| Backend | Golang (Gin) | Performa tinggi untuk kueri geospasial yang sering dipanggil (katalog nearby items), concurrency native Go cocok untuk beban request paralel saat demo. |
+| Auth | Supabase Auth | Menyediakan manajemen sesi & JWT siap pakai tanpa membangun sistem auth dari nol; backend Go tetap expose endpoint `/auth/register` & `/auth/login` sendiri sebagai proxy, lalu memverifikasi JWT lewat JWKS untuk endpoint privat. |
 | Database | PostgreSQL + PostGIS (Supabase) | PostGIS menyediakan fungsi geospasial siap pakai (`ST_DWithin`, `ST_Distance`) sehingga tidak perlu implementasi Haversine manual di level aplikasi; Supabase mempercepat provisioning DB + Auth dasar. |
-| Hosting | Vercel (FE) + Render/Koyeb (BE) | Free-tier yang stabil untuk kebutuhan demo kompetisi, deploy otomatis dari Git push. |
+| Hosting | Hosting berbasis HTTPS (FE & BE) | Yang menjadi syarat utama adalah aplikasi dapat diakses publik secara aman lewat HTTPS; detail penyedia hosting bersifat teknis-operasional dan tidak memengaruhi arsitektur inti. |
 
 ---
 
