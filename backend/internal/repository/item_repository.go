@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -78,18 +80,20 @@ func (r *ItemRepository) Create(ctx context.Context, input CreateItemInput) (str
 
 // NearbyItem merepresentasikan satu baris hasil dari fungsi get_nearby_items di database
 type NearbyItem struct {
-	ItemID          string  `json:"item_id"`
-	ResourceCode    *string `json:"resource_code"`
-	Title           string  `json:"title"`
-	Category        string  `json:"category"`
-	TransactionType string  `json:"transaction_type"`
-	MarketPrice     float64 `json:"market_price"`
-	CoverPhotoURL   *string `json:"cover_photo_url"`
-	Status          string  `json:"status"`
-	OwnerID         string  `json:"owner_id"`
-	OwnerName       string  `json:"owner_name"`
-	OwnerTrustScore float64 `json:"owner_trust_score"`
-	DistanceMeter   float64 `json:"distance_meter"`
+	ItemID           string   `json:"item_id"`
+	ResourceCode     string   `json:"resource_code"`
+	Title            string   `json:"title"`
+	Category         string   `json:"category"`
+	TransactionType  string   `json:"transaction_type"`
+	MarketPrice      float64  `json:"market_price"`
+	CoverPhotoURL    *string  `json:"cover_photo_url"`
+	Status           string   `json:"status"`
+	OwnerID          string   `json:"owner_id"`
+	OwnerName        string   `json:"owner_name"`
+	OwnerTrustScore  float64  `json:"owner_trust_score"`
+	OwnerAvgRating   *float64 `json:"owner_avg_rating"`
+	OwnerReviewCount int      `json:"owner_review_count"`
+	DistanceMeter    float64  `json:"distance_meter"`
 }
 
 // FindNearby memanggil fungsi PostGIS get_nearby_items untuk mencari barang
@@ -107,9 +111,20 @@ func (r *ItemRepository) FindNearby(ctx context.Context, lat, lng float64, radiu
 	for rows.Next() {
 		var item NearbyItem
 		if err := rows.Scan(
-			&item.ItemID, &item.ResourceCode, &item.Title, &item.Category, &item.TransactionType,
-			&item.MarketPrice, &item.CoverPhotoURL, &item.Status, &item.OwnerID,
-			&item.OwnerName, &item.OwnerTrustScore, &item.DistanceMeter,
+			&item.ItemID,
+			&item.ResourceCode,
+			&item.Title,
+			&item.Category,
+			&item.TransactionType,
+			&item.MarketPrice,
+			&item.CoverPhotoURL,
+			&item.Status,
+			&item.OwnerID,
+			&item.OwnerName,
+			&item.OwnerTrustScore,
+			&item.OwnerAvgRating,
+			&item.OwnerReviewCount,
+			&item.DistanceMeter,
 		); err != nil {
 			return nil, err
 		}
@@ -117,4 +132,64 @@ func (r *ItemRepository) FindNearby(ctx context.Context, lat, lng float64, radiu
 	}
 
 	return items, rows.Err()
+}
+
+var ErrItemCurrentlyOnLoan = errors.New("barang sedang dipinjam, tidak bisa dihapus sampai transaksi selesai")
+
+// Delete menghapus barang. Kalau barang PERNAH ada riwayat transaksi (walau
+// sudah selesai/returned), status cuma diubah jadi 'unavailable' (soft delete)
+// supaya riwayat transaksi & trust score terkait tidak ikut hilang. Kalau
+// belum pernah ada transaksi sama sekali, baris beneran dihapus (hard delete).
+func (r *ItemRepository) Delete(ctx context.Context, itemID, requesterID string) (string, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback(ctx)
+
+	var ownerID, status string
+	err = tx.QueryRow(ctx,
+		`SELECT owner_id, status FROM items WHERE id = $1 FOR UPDATE`,
+		itemID,
+	).Scan(&ownerID, &status)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrItemNotFound
+		}
+		return "", err
+	}
+
+	if ownerID != requesterID {
+		return "", ErrNotAuthorizedForAction
+	}
+
+	if status == "on_transaction" {
+		return "", ErrItemCurrentlyOnLoan
+	}
+
+	var historyCount int
+	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM transactions WHERE item_id = $1`, itemID).Scan(&historyCount); err != nil {
+		return "", err
+	}
+
+	var action string
+	if historyCount > 0 {
+		if _, err := tx.Exec(ctx, `UPDATE items SET status = 'unavailable' WHERE id = $1`, itemID); err != nil {
+			return "", err
+		}
+		action = "soft_deleted"
+	} else {
+		// item_photos ikut terhapus otomatis (ON DELETE CASCADE di ERD.sql)
+		if _, err := tx.Exec(ctx, `DELETE FROM items WHERE id = $1`, itemID); err != nil {
+			return "", err
+		}
+		action = "hard_deleted"
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return "", err
+	}
+
+	return action, nil
 }

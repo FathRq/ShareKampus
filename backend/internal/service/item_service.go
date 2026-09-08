@@ -99,3 +99,7 @@ func (s *ItemService) FindNearby(ctx context.Context, input FindNearbyInput) ([]
 
 	return s.itemRepo.FindNearby(ctx, input.Latitude, input.Longitude, radius, input.Category)
 }
+
+func (s *ItemService) DeleteItem(ctx context.Context, itemID, requesterID string) (string, error) {
+	return s.itemRepo.Delete(ctx, itemID, requesterID)
+}

@@ -3,8 +3,10 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/FathRq/ShareKampus/backend/internal/middleware"
+	"github.com/FathRq/ShareKampus/backend/internal/repository"
 	"github.com/FathRq/ShareKampus/backend/internal/service"
 	"github.com/gin-gonic/gin"
 )
@@ -86,6 +88,105 @@ func (h *ItemHandler) Create(c *gin.Context) {
 		"success": true,
 		"data": gin.H{
 			"item_id": itemID,
+		},
+	})
+}
+
+// FindNearby menangani GET /items/nearby
+func (h *ItemHandler) FindNearby(c *gin.Context) {
+	lat, err := strconv.ParseFloat(c.Query("lat"), 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Parameter 'lat' wajib diisi dan harus berupa angka",
+			},
+		})
+		return
+	}
+
+	lng, err := strconv.ParseFloat(c.Query("lng"), 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "VALIDATION_ERROR",
+				"message": "Parameter 'lng' wajib diisi dan harus berupa angka",
+			},
+		})
+		return
+	}
+
+	// radius opsional -- kalau kosong atau invalid, biarkan 0 (service akan pakai default 2500m)
+	radius, _ := strconv.Atoi(c.Query("radius"))
+
+	// category opsional -- kirim nil kalau kosong, bukan string ""
+	var category *string
+	if val := c.Query("category"); val != "" {
+		category = &val
+	}
+
+	items, err := h.itemService.FindNearby(c.Request.Context(), service.FindNearbyInput{
+		Latitude:    lat,
+		Longitude:   lng,
+		RadiusMeter: radius,
+		Category:    category,
+	})
+
+	if err != nil {
+		if errors.Is(err, service.ErrInvalidCategory) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "VALIDATION_ERROR",
+					"message": err.Error(),
+				},
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_SERVER_ERROR",
+				"message": "Gagal mengambil daftar barang terdekat",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    items,
+	})
+}
+
+// Delete menangani DELETE /items/:id
+func (h *ItemHandler) Delete(c *gin.Context) {
+	itemID := c.Param("id")
+	requesterID, _ := c.Get(string(middleware.UserIDContextKey))
+
+	action, err := h.itemService.DeleteItem(c.Request.Context(), itemID, requesterID.(string))
+
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrItemNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "ITEM_NOT_FOUND", "message": err.Error()}})
+		case errors.Is(err, repository.ErrNotAuthorizedForAction):
+			c.JSON(http.StatusForbidden, gin.H{"success": false, "error": gin.H{"code": "FORBIDDEN", "message": err.Error()}})
+		case errors.Is(err, repository.ErrItemCurrentlyOnLoan):
+			c.JSON(http.StatusConflict, gin.H{"success": false, "error": gin.H{"code": "ITEM_ON_LOAN", "message": err.Error()}})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_SERVER_ERROR", "message": "Gagal menghapus barang"}})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"action": action, // "soft_deleted" atau "hard_deleted"
 		},
 	})
 }
