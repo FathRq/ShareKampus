@@ -4,8 +4,8 @@
 **Tim:**
 - **Lead** — Full-stack Lead Developer (kamu)
 - **Sihan** — Frontend Developer
-- **Kay** — Lead Proposal / SDGs
-- **Sar** — Technical Writer / QA / GitHub Manager
+- **Kaysa** — Lead Proposal / SDGs
+- **Sarah** — Technical Writer / QA / GitHub Manager
 
 ---
 
@@ -46,28 +46,32 @@
 
 ### Fase 1: Hari 1–5 (Foundation)
 - [ ] **H1:** Setup repo GitHub monorepo (`/frontend`, `/backend`), branch protection `main`/`dev`, `.gitignore` & `.env.example`
-- [ ] **H1:** Provisioning project Supabase, aktifkan extension `postgis`
-- [ ] **H2:** Eksekusi `ERD.sql` (tabel campuses, users, items, transactions, reviews)
-- [ ] **H2:** Setup boilerplate Golang (Gin/Fiber) + struktur folder backend
+- [x] **H1:** Provisioning project Supabase, aktifkan extension `postgis`
+- [x] **H2:** Eksekusi `ERD.sql` (tabel campuses, users, items, transactions, reviews)
+- [x] **H2:** Setup boilerplate Golang (Gin) + struktur folder backend — *stack final: Gin saja, Fiber tidak jadi dipakai*
 - [ ] **H3:** Setup boilerplate React + Tailwind + Shadcn UI, terapkan token dari `DESIGN_SYSTEM.md`
-- [ ] **H3:** Implementasi endpoint `POST /auth/register` & `POST /auth/login` + validasi domain email
+- [x] **H3:** Implementasi endpoint `POST /auth/register` & `POST /auth/login` + validasi domain email
 - [ ] **H4:** Implementasi UI halaman Register/Login (mobile-first) + integrasi API auth
 - [ ] **H4:** Setup deploy awal: Vercel (frontend) & Render/Koyeb (backend), test koneksi end-to-end
 - [ ] **H5:** Review internal Fase 1 (demo auth flow jalan), setup CI dasar (lint + build check)
 
 ### Fase 2: Hari 6–10 (Core Features)
-- [ ] **H6:** Implementasi endpoint `GET /items/nearby` + stored function `get_nearby_items`
+- [x] **H6:** Implementasi endpoint `GET /items/nearby` + stored function `get_nearby_items`
 - [ ] **H6:** Implementasi UI Beranda + Katalog (Item Card, filter kategori & radius)
-- [ ] **H7:** Implementasi endpoint `POST /items` (buat listing barang) + UI form tambah barang
+- [x] **H7:** Implementasi endpoint `POST /items` (buat listing barang) + ~~UI form tambah barang~~ *(UI belum)*
 - [ ] **H7:** Implementasi Bottom Sheet Drawer untuk detail barang & form pengajuan transaksi
-- [ ] **H8:** Implementasi endpoint `POST /transactions` & `PATCH /transactions/:id/status`
+- [x] **H8:** Implementasi endpoint `POST /transactions` & `PATCH /transactions/:id/status`
 - [ ] **H8:** Implementasi UI halaman "Transaksi Saya" dengan Status Badge (pending/active/returned/overdue)
-- [ ] **H9:** Implementasi `recalculate_trust_score()` trigger pasca-review + endpoint `GET /users/:id/trust-score`
+- [x] **H9:** Implementasi `recalculate_trust_score()` trigger pasca-review + endpoint `GET /users/:id/trust-score`
 - [ ] **H9:** Implementasi UI Trust Score Badge di profil & item card
-- [ ] **H10:** Implementasi endpoint ulasan (`POST /reviews`) + UI form ulasan pasca-transaksi `returned`
+- [x] **H10:** Implementasi endpoint ulasan (`POST /reviews`) + ~~UI form ulasan pasca-transaksi `returned`~~ *(UI belum)*
+
+**Catatan tambahan (di luar rencana awal, dikerjakan karena kebutuhan berkembang saat development):**
+- [x] **Bonus:** `DELETE /items/:id` — hapus listing barang, otomatis soft-delete (kalau punya riwayat transaksi) atau hard-delete (kalau belum pernah dipinjam), demi menjaga integritas Trust Score & Expense Saver
+- [x] **Bonus:** Field jadwal & lokasi ketemuan (`meeting_scheduled_at`, `meeting_point`, `notes`) di `POST /transactions` — peminjam usulkan, pemilik bisa override sebagian saat approve
 
 ### Fase 3: Hari 11–15 (Polish & Submission)
-- [ ] **H11:** Implementasi `get_expense_saver_total()` + UI Expense Saver Counter Card di beranda
+- [x] **H11:** Implementasi `get_expense_saver_total()` + ~~UI Expense Saver Counter Card di beranda~~ *(UI belum)*
 - [ ] **H11:** QA menyeluruh alur end-to-end (register → cari barang → transaksi → ulasan)
 - [ ] **H12:** Bug fixing berdasarkan hasil QA Sar, cek responsivitas mobile di berbagai ukuran layar
 - [ ] **H12:** Audit keamanan dasar: cek `.env` tidak ter-commit, RLS Supabase aktif, validasi input backend

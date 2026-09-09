@@ -125,6 +125,7 @@ CREATE TABLE transactions (
     actual_cost         NUMERIC(12,2) NOT NULL DEFAULT 0,    -- C_i pada formula E_saved (0 jika gratis)
     agreed_return_date  DATE,
     returned_at         TIMESTAMPTZ,
+    meeting_scheduled_at TIMESTAMPTZ,                        -- tanggal + jam janji ketemuan, diusulkan peminjam saat request, bisa di-override pemilik saat approve
     meeting_point       GEOGRAPHY(Point, 4326),              -- titik temu serah-terima, dalam radius kampus
     notes               TEXT,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -166,18 +167,20 @@ CREATE OR REPLACE FUNCTION get_nearby_items(
     filter_category item_category DEFAULT NULL
 )
 RETURNS TABLE (
-    item_id         UUID,
-    resource_code   VARCHAR,
-    title           VARCHAR,
-    category        item_category,
-    transaction_type item_transaction_type,
-    market_price    NUMERIC,
-    cover_photo_url TEXT,
-    status          item_status,
-    owner_id        UUID,
-    owner_name      VARCHAR,
-    owner_trust_score NUMERIC,
-    distance_meter  DOUBLE PRECISION
+    item_id            UUID,
+    resource_code      VARCHAR,
+    title              VARCHAR,
+    category           item_category,
+    transaction_type   item_transaction_type,
+    market_price       NUMERIC,
+    cover_photo_url    TEXT,
+    status             item_status,
+    owner_id           UUID,
+    owner_name         VARCHAR,
+    owner_trust_score  NUMERIC,
+    owner_avg_rating   NUMERIC,   -- rata-rata rating pemilik dari tabel reviews, NULL kalau belum pernah direview
+    owner_review_count INTEGER,   -- jumlah ulasan yang diterima pemilik
+    distance_meter     DOUBLE PRECISION
 )
 LANGUAGE plpgsql
 AS $$
@@ -200,6 +203,14 @@ BEGIN
         u.id,
         u.full_name,
         u.trust_score,
+        (
+            SELECT ROUND(AVG(r.rating), 2) FROM reviews r
+            WHERE r.reviewee_id = u.id
+        ) AS owner_avg_rating,
+        (
+            SELECT COUNT(*)::INTEGER FROM reviews r
+            WHERE r.reviewee_id = u.id
+        ) AS owner_review_count,
         ST_Distance(
             i.location,
             ST_SetSRID(ST_MakePoint(user_lng, user_lat), 4326)::geography
@@ -292,20 +303,97 @@ $$;
 -- E_saved = SUM(market_price - actual_cost) untuk transaksi berstatus 'returned'
 -- ============================================================================
 CREATE OR REPLACE FUNCTION get_expense_saver_total()
-RETURNS NUMERIC
+RETURNS TABLE (
+    total_saved            NUMERIC,
+    completed_transactions INTEGER
+)
 LANGUAGE sql
 AS $$
-    SELECT COALESCE(SUM(i.market_price - t.actual_cost), 0)
+    SELECT
+        COALESCE(SUM(i.market_price - t.actual_cost), 0),
+        COUNT(*)::INTEGER
     FROM transactions t
     JOIN items i ON i.id = t.item_id
     WHERE t.status = 'returned';
 $$;
 
 -- Contoh pemanggilan:
--- SELECT get_expense_saver_total();
+-- SELECT * FROM get_expense_saver_total();
 
 -- ============================================================================
--- 9. TRIGGER: Auto-update `updated_at`
+-- 9. STORED FUNCTION: Get Trust Score Breakdown
+-- Versi baca-saja (tanpa UPDATE) dari recalculate_trust_score(), dipakai untuk
+-- menampilkan rincian komponen skor di GET /users/:id/trust-score
+-- ============================================================================
+CREATE OR REPLACE FUNCTION get_trust_score_breakdown(target_user_id UUID)
+RETURNS TABLE (
+    trust_score        NUMERIC,
+    avg_rating         NUMERIC,
+    review_count       INTEGER,
+    on_time_ratio      NUMERIC,
+    completion_ratio   NUMERIC,
+    total_transactions INTEGER
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_avg_rating        NUMERIC := 0;
+    v_review_count      INTEGER := 0;
+    v_on_time_ratio     NUMERIC := 0;
+    v_completion_ratio  NUMERIC := 0;
+    v_total_as_borrower INTEGER := 0;
+    v_on_time_count     INTEGER := 0;
+    v_total_requested   INTEGER := 0;
+    v_total_completed   INTEGER := 0;
+    v_trust_score       NUMERIC := 50.00;
+BEGIN
+    SELECT COALESCE(AVG(r.rating), 0), COUNT(*) INTO v_avg_rating, v_review_count
+    FROM reviews r WHERE r.reviewee_id = target_user_id;
+
+    SELECT COUNT(*) INTO v_total_as_borrower
+    FROM transactions
+    WHERE borrower_id = target_user_id AND status IN ('returned', 'overdue');
+
+    SELECT COUNT(*) INTO v_on_time_count
+    FROM transactions
+    WHERE borrower_id = target_user_id
+      AND status = 'returned'
+      AND returned_at::date <= agreed_return_date;
+
+    IF v_total_as_borrower > 0 THEN
+        v_on_time_ratio := v_on_time_count::NUMERIC / v_total_as_borrower;
+    END IF;
+
+    SELECT COUNT(*) INTO v_total_requested
+    FROM transactions
+    WHERE borrower_id = target_user_id OR lender_id = target_user_id;
+
+    SELECT COUNT(*) INTO v_total_completed
+    FROM transactions
+    WHERE (borrower_id = target_user_id OR lender_id = target_user_id)
+      AND status = 'returned';
+
+    IF v_total_requested > 0 THEN
+        v_completion_ratio := v_total_completed::NUMERIC / v_total_requested;
+    END IF;
+
+    SELECT u.trust_score INTO v_trust_score FROM users u WHERE u.id = target_user_id;
+
+    RETURN QUERY SELECT
+        v_trust_score,
+        ROUND(v_avg_rating, 2),
+        v_review_count,
+        ROUND(v_on_time_ratio, 2),
+        ROUND(v_completion_ratio, 2),
+        v_total_requested;
+END;
+$$;
+
+-- Contoh pemanggilan:
+-- SELECT * FROM get_trust_score_breakdown('760d16f2-849e-459b-a8db-4fae1b0bfdd9');
+
+-- ============================================================================
+-- 10. TRIGGER: Auto-update `updated_at`
 -- ============================================================================
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
@@ -357,7 +445,7 @@ CREATE TRIGGER trg_generate_resource_code
     EXECUTE FUNCTION generate_resource_code();
 
 -- ============================================================================
--- 10. ROW LEVEL SECURITY (RLS) — DASAR (aktifkan & sesuaikan policy di Supabase)
+-- 11. ROW LEVEL SECURITY (RLS) — DASAR (aktifkan & sesuaikan policy di Supabase)
 -- ============================================================================
 ALTER TABLE campus_locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
