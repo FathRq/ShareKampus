@@ -122,7 +122,6 @@ func (r *TransactionRepository) UpdateStatus(ctx context.Context, transactionID,
 		if requesterID != row.LenderID {
 			return ErrNotAuthorizedForAction
 		}
-		// Cek ulang status barang (jaga-jaga ada request lain yang sudah keburu di-approve duluan)
 		var itemStatus string
 		if err := tx.QueryRow(ctx, `SELECT status FROM items WHERE id = $1 FOR UPDATE`, row.ItemID).Scan(&itemStatus); err != nil {
 			return err
@@ -162,6 +161,8 @@ func (r *TransactionRepository) UpdateStatus(ctx context.Context, transactionID,
 		}
 	}
 
+	// Update status transaksi -- HARUS dieksekusi SEBELUM recalculate_trust_score,
+	// supaya fungsi hitung itu "melihat" status terbaru transaksi ini.
 	if newStatus == "returned" {
 		_, err = tx.Exec(ctx, `UPDATE transactions SET status = $1, returned_at = now() WHERE id = $2`, newStatus, transactionID)
 	} else {
@@ -169,6 +170,16 @@ func (r *TransactionRepository) UpdateStatus(ctx context.Context, transactionID,
 	}
 	if err != nil {
 		return err
+	}
+
+	// Baru sekarang recalculate -- setelah status 'returned' sudah tersimpan
+	if newStatus == "returned" {
+		if _, err := tx.Exec(ctx, `SELECT recalculate_trust_score($1)`, row.BorrowerID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `SELECT recalculate_trust_score($1)`, row.LenderID); err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit(ctx)

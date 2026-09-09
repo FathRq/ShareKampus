@@ -1,0 +1,77 @@
+@startuml ShareKampus_UserFlow
+title ShareKampus — User Flow (Campus Circular Loop)
+
+|Mahasiswa Baru|
+start
+:Buka ShareKampus;
+:Lihat katalog barang terdekat\n(GET /items/nearby, tanpa login);
+
+if (Tertarik pinjam barang?) then (ya)
+  :Daftar akun\n(POST /auth/register)\n-- validasi domain email kampus --;
+  :Login\n(POST /auth/login);
+else (belum, cuma lihat-lihat)
+  stop
+endif
+
+|Peminjam|
+:Pilih barang yang diinginkan;
+:Ajukan permintaan pinjam/barter\n(POST /transactions)\n-- status: pending --;
+note right
+  Barang TETAP terlihat "available"
+  bagi mahasiswa lain -- bisa ada
+  beberapa permintaan pending sekaligus
+end note
+:Tunggu persetujuan pemilik;
+
+|Pemilik Barang|
+:Terima notifikasi permintaan;
+if (Setujui peminjam?) then (approve)
+  :Approve\n(PATCH /transactions/:id/status\nstatus: active);
+  :Barang otomatis terkunci\n(items.status = on_transaction);
+else (tolak)
+  :Reject\n(PATCH /transactions/:id/status\nstatus: rejected);
+  stop
+endif
+
+|Peminjam|
+:Ambil barang dari pemilik\n(ketemu langsung di kampus);
+:Gunakan barang selama masa pinjam;
+
+|Peminjam #LightYellow|
+:Kembalikan barang;
+
+fork
+  |Peminjam|
+  :Tandai selesai\n(PATCH /transactions/:id/status\nstatus: returned);
+fork again
+  |Pemilik Barang|
+  :Tandai selesai\n(PATCH /transactions/:id/status\nstatus: returned);
+end fork
+note right
+  Siapa saja (peminjam ATAU pemilik)
+  boleh menandai returned duluan
+end note
+
+:Barang otomatis terbuka lagi\n(items.status = available);
+:Trust Score kedua pihak\ndihitung ulang otomatis\n(recalculate_trust_score);
+
+|Peminjam|
+:Beri ulasan untuk pemilik\n(POST /reviews)\n-- rating 1-5 + komentar --;
+note right
+  Hanya bisa 1x per transaksi,
+  hanya untuk transaksi berstatus returned
+end note
+:Trust Score pemilik\ndihitung ulang lagi\n(termasuk rata-rata rating);
+
+|Mahasiswa Lain|
+:Lihat profil pemilik sebelum pinjam\n(GET /users/:id/trust-score)\n-- rata-rata rating, rasio tepat waktu, dst --;
+:Barang yang sama kini bisa\ndipinjam mahasiswa berikutnya;
+note right
+  Inilah "Campus Circular Loop" --
+  satu barang terus bersirkulasi
+  ke banyak mahasiswa berbeda
+end note
+
+stop
+
+@enduml

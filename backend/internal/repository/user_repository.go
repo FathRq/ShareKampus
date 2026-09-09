@@ -64,3 +64,28 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*UserProfile, 
 
 	return &p, nil
 }
+
+type TrustScoreBreakdown struct {
+	TrustScore        float64 `json:"trust_score"`
+	AvgRating         float64 `json:"avg_rating"`
+	ReviewCount       int     `json:"review_count"`
+	OnTimeRatio       float64 `json:"on_time_ratio"`
+	CompletionRatio   float64 `json:"completion_ratio"`
+	TotalTransactions int     `json:"total_transactions"`
+}
+
+// GetTrustScoreBreakdown mengambil rincian komponen Trust Score seorang user
+func (r *UserRepository) GetTrustScoreBreakdown(ctx context.Context, userID string) (*TrustScoreBreakdown, error) {
+	var b TrustScoreBreakdown
+
+	query := `SELECT * FROM get_trust_score_breakdown($1)`
+
+	err := r.db.QueryRow(ctx, query, userID).Scan(
+		&b.TrustScore, &b.AvgRating, &b.ReviewCount, &b.OnTimeRatio, &b.CompletionRatio, &b.TotalTransactions,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &b, nil
+}

@@ -48,3 +48,25 @@ func (h *UserHandler) Me(c *gin.Context) {
 		"data":    profile,
 	})
 }
+
+// TrustScore menangani GET /users/:id/trust-score
+func (h *UserHandler) TrustScore(c *gin.Context) {
+	userID := c.Param("id")
+
+	breakdown, err := h.userRepo.GetTrustScoreBreakdown(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "USER_NOT_FOUND",
+				"message": "Pengguna tidak ditemukan",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    breakdown,
+	})
+}
