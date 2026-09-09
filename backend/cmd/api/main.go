@@ -32,12 +32,14 @@ func main() {
 	authClient := repository.NewSupabaseAuthClient(cfg.SupabaseURL, cfg.SupabasePublishableKey)
 	transactionRepo := repository.NewTransactionRepository(pool)
 	reviewRepo := repository.NewReviewRepository(pool)
+	statsRepo := repository.NewStatsRepository(pool)
 
 	// --- Service layer ---
 	authService := service.NewAuthService(campusRepo, userRepo, authClient)
 	itemService := service.NewItemService(itemRepo)
 	transactionService := service.NewTransactionService(transactionRepo)
 	reviewService := service.NewReviewService(reviewRepo)
+	statsHandler := handler.NewStatsHandler(statsRepo)
 
 	// --- Handler layer ---
 	campusLocationHandler := handler.NewCampusLocationHandler(campusLocationRepo)
@@ -80,6 +82,7 @@ func main() {
 	router.DELETE("/items/:id", requireAuth, itemHandler.Delete)
 	router.POST("/reviews", requireAuth, reviewHandler.Create)
 	router.GET("/users/:id/trust-score", userHandler.TrustScore)
+	router.GET("/stats/expense-saver", statsHandler.ExpenseSaver)
 
 	router.Run(":" + cfg.Port)
 }

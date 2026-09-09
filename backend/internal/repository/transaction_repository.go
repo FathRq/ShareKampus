@@ -27,14 +27,15 @@ func NewTransactionRepository(db *pgxpool.Pool) *TransactionRepository {
 }
 
 type CreateTransactionInput struct {
-	ItemID     string
-	BorrowerID string
+	ItemID             string
+	BorrowerID         string
+	MeetingScheduledAt *time.Time
+	MeetingLatitude    *float64
+	MeetingLongitude   *float64
+	Notes              *string
 }
 
 // Create membuat transaksi baru berstatus 'pending'.
-// Barang DIKUNCI SEMENTARA (row lock) selama proses pengecekan untuk mencegah
-// race condition, tapi status barang TIDAK diubah -- tetap 'available',
-// sesuai desain: boleh ada banyak request pending untuk barang yang sama.
 func (r *TransactionRepository) Create(ctx context.Context, input CreateTransactionInput) (string, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -69,10 +70,23 @@ func (r *TransactionRepository) Create(ctx context.Context, input CreateTransact
 
 	var transactionID string
 	err = tx.QueryRow(ctx,
-		`INSERT INTO transactions (item_id, borrower_id, lender_id, status, agreed_return_date)
-		 VALUES ($1, $2, $3, 'pending', $4)
-		 RETURNING id`,
+		`INSERT INTO transactions (
+			item_id, borrower_id, lender_id, status, agreed_return_date,
+			meeting_scheduled_at, meeting_point, notes
+		)
+		VALUES (
+			$1, $2, $3, 'pending', $4,
+			$5,
+			CASE WHEN $6::double precision IS NOT NULL AND $7::double precision IS NOT NULL
+				THEN ST_SetSRID(ST_MakePoint($6, $7), 4326)::geography
+				ELSE NULL END,
+			$8
+		)
+		RETURNING id`,
 		input.ItemID, input.BorrowerID, ownerID, agreedReturnDate,
+		input.MeetingScheduledAt,
+		input.MeetingLongitude, input.MeetingLatitude,
+		input.Notes,
 	).Scan(&transactionID)
 	if err != nil {
 		return "", err
@@ -92,9 +106,17 @@ type transactionRow struct {
 	Status     string
 }
 
-// UpdateStatus menangani approve/reject/cancel/returned dalam satu fungsi,
-// aturan siapa-boleh-apa dicek di dalam sini, dibungkus satu transaksi DB.
-func (r *TransactionRepository) UpdateStatus(ctx context.Context, transactionID, requesterID, newStatus string) error {
+type UpdateStatusInput struct {
+	TransactionID      string
+	RequesterID        string
+	NewStatus          string
+	MeetingScheduledAt *time.Time // opsional -- override waktu, cuma dipakai kalau NewStatus == "active"
+	MeetingLatitude    *float64
+	MeetingLongitude   *float64
+}
+
+// UpdateStatus menangani approve/reject/cancel/returned dalam satu fungsi.
+func (r *TransactionRepository) UpdateStatus(ctx context.Context, input UpdateStatusInput) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return err
@@ -104,7 +126,7 @@ func (r *TransactionRepository) UpdateStatus(ctx context.Context, transactionID,
 	var row transactionRow
 	err = tx.QueryRow(ctx,
 		`SELECT item_id, borrower_id, lender_id, status FROM transactions WHERE id = $1 FOR UPDATE`,
-		transactionID,
+		input.TransactionID,
 	).Scan(&row.ItemID, &row.BorrowerID, &row.LenderID, &row.Status)
 
 	if err != nil {
@@ -114,12 +136,12 @@ func (r *TransactionRepository) UpdateStatus(ctx context.Context, transactionID,
 		return err
 	}
 
-	switch newStatus {
+	switch input.NewStatus {
 	case "active":
 		if row.Status != "pending" {
 			return ErrInvalidStatusTransition
 		}
-		if requesterID != row.LenderID {
+		if input.RequesterID != row.LenderID {
 			return ErrNotAuthorizedForAction
 		}
 		var itemStatus string
@@ -137,7 +159,7 @@ func (r *TransactionRepository) UpdateStatus(ctx context.Context, transactionID,
 		if row.Status != "pending" {
 			return ErrInvalidStatusTransition
 		}
-		if requesterID != row.LenderID {
+		if input.RequesterID != row.LenderID {
 			return ErrNotAuthorizedForAction
 		}
 
@@ -145,7 +167,7 @@ func (r *TransactionRepository) UpdateStatus(ctx context.Context, transactionID,
 		if row.Status != "pending" {
 			return ErrInvalidStatusTransition
 		}
-		if requesterID != row.BorrowerID {
+		if input.RequesterID != row.BorrowerID {
 			return ErrNotAuthorizedForAction
 		}
 
@@ -153,7 +175,7 @@ func (r *TransactionRepository) UpdateStatus(ctx context.Context, transactionID,
 		if row.Status != "active" {
 			return ErrInvalidStatusTransition
 		}
-		if requesterID != row.BorrowerID && requesterID != row.LenderID {
+		if input.RequesterID != row.BorrowerID && input.RequesterID != row.LenderID {
 			return ErrNotAuthorizedForAction
 		}
 		if _, err := tx.Exec(ctx, `UPDATE items SET status = 'available' WHERE id = $1`, row.ItemID); err != nil {
@@ -161,19 +183,35 @@ func (r *TransactionRepository) UpdateStatus(ctx context.Context, transactionID,
 		}
 	}
 
-	// Update status transaksi -- HARUS dieksekusi SEBELUM recalculate_trust_score,
-	// supaya fungsi hitung itu "melihat" status terbaru transaksi ini.
-	if newStatus == "returned" {
-		_, err = tx.Exec(ctx, `UPDATE transactions SET status = $1, returned_at = now() WHERE id = $2`, newStatus, transactionID)
+	// Update status transaksi. Kalau NewStatus == "active" dan pemilik kasih
+	// override waktu/lokasi, ikut di-update di sini juga -- kalau tidak
+	// dikasih (nil), COALESCE/CASE menjaga nilai lama (usulan peminjam) tetap.
+	if input.NewStatus == "returned" {
+		_, err = tx.Exec(ctx,
+			`UPDATE transactions SET status = $1, returned_at = now() WHERE id = $2`,
+			input.NewStatus, input.TransactionID,
+		)
 	} else {
-		_, err = tx.Exec(ctx, `UPDATE transactions SET status = $1 WHERE id = $2`, newStatus, transactionID)
+		_, err = tx.Exec(ctx,
+			`UPDATE transactions SET
+				status = $1,
+				meeting_scheduled_at = COALESCE($3, meeting_scheduled_at),
+				meeting_point = CASE
+					WHEN $4::double precision IS NOT NULL AND $5::double precision IS NOT NULL
+					THEN ST_SetSRID(ST_MakePoint($4, $5), 4326)::geography
+					ELSE meeting_point
+				END
+			WHERE id = $2`,
+			input.NewStatus, input.TransactionID,
+			input.MeetingScheduledAt,
+			input.MeetingLongitude, input.MeetingLatitude,
+		)
 	}
 	if err != nil {
 		return err
 	}
 
-	// Baru sekarang recalculate -- setelah status 'returned' sudah tersimpan
-	if newStatus == "returned" {
+	if input.NewStatus == "returned" {
 		if _, err := tx.Exec(ctx, `SELECT recalculate_trust_score($1)`, row.BorrowerID); err != nil {
 			return err
 		}

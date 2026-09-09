@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/FathRq/ShareKampus/backend/internal/repository"
 )
@@ -25,20 +26,44 @@ func NewTransactionService(transactionRepo *repository.TransactionRepository) *T
 }
 
 type CreateTransactionInput struct {
-	ItemID     string
-	BorrowerID string
+	ItemID             string
+	BorrowerID         string
+	MeetingScheduledAt *time.Time
+	MeetingLatitude    *float64
+	MeetingLongitude   *float64
+	Notes              *string
 }
 
 func (s *TransactionService) CreateTransaction(ctx context.Context, input CreateTransactionInput) (string, error) {
 	return s.transactionRepo.Create(ctx, repository.CreateTransactionInput{
-		ItemID:     input.ItemID,
-		BorrowerID: input.BorrowerID,
+		ItemID:             input.ItemID,
+		BorrowerID:         input.BorrowerID,
+		MeetingScheduledAt: input.MeetingScheduledAt,
+		MeetingLatitude:    input.MeetingLatitude,
+		MeetingLongitude:   input.MeetingLongitude,
+		Notes:              input.Notes,
 	})
 }
 
-func (s *TransactionService) UpdateStatus(ctx context.Context, transactionID, requesterID, newStatus string) error {
-	if !validTransactionStatuses[newStatus] {
+type UpdateStatusInput struct {
+	TransactionID      string
+	RequesterID        string
+	NewStatus          string
+	MeetingScheduledAt *time.Time
+	MeetingLatitude    *float64
+	MeetingLongitude   *float64
+}
+
+func (s *TransactionService) UpdateStatus(ctx context.Context, input UpdateStatusInput) error {
+	if !validTransactionStatuses[input.NewStatus] {
 		return ErrInvalidStatusValue
 	}
-	return s.transactionRepo.UpdateStatus(ctx, transactionID, requesterID, newStatus)
+	return s.transactionRepo.UpdateStatus(ctx, repository.UpdateStatusInput{
+		TransactionID:      input.TransactionID,
+		RequesterID:        input.RequesterID,
+		NewStatus:          input.NewStatus,
+		MeetingScheduledAt: input.MeetingScheduledAt,
+		MeetingLatitude:    input.MeetingLatitude,
+		MeetingLongitude:   input.MeetingLongitude,
+	})
 }

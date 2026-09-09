@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/FathRq/ShareKampus/backend/internal/middleware"
 	"github.com/FathRq/ShareKampus/backend/internal/repository"
@@ -19,7 +20,11 @@ func NewTransactionHandler(transactionService *service.TransactionService) *Tran
 }
 
 type createTransactionRequest struct {
-	ItemID string `json:"item_id" binding:"required"`
+	ItemID             string   `json:"item_id" binding:"required"`
+	MeetingScheduledAt *string  `json:"meeting_scheduled_at"` // format ISO8601, contoh: "2026-09-15T14:00:00+07:00"
+	MeetingLatitude    *float64 `json:"meeting_latitude"`
+	MeetingLongitude   *float64 `json:"meeting_longitude"`
+	Notes              *string  `json:"notes"`
 }
 
 // Create menangani POST /transactions
@@ -33,11 +38,31 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 		return
 	}
 
+	var meetingTime *time.Time
+	if req.MeetingScheduledAt != nil {
+		parsed, err := time.Parse(time.RFC3339, *req.MeetingScheduledAt)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "VALIDATION_ERROR",
+					"message": "Format meeting_scheduled_at tidak valid, gunakan format ISO8601 (contoh: 2026-09-15T14:00:00+07:00)",
+				},
+			})
+			return
+		}
+		meetingTime = &parsed
+	}
+
 	borrowerID, _ := c.Get(string(middleware.UserIDContextKey))
 
 	transactionID, err := h.transactionService.CreateTransaction(c.Request.Context(), service.CreateTransactionInput{
-		ItemID:     req.ItemID,
-		BorrowerID: borrowerID.(string),
+		ItemID:             req.ItemID,
+		BorrowerID:         borrowerID.(string),
+		MeetingScheduledAt: meetingTime,
+		MeetingLatitude:    req.MeetingLatitude,
+		MeetingLongitude:   req.MeetingLongitude,
+		Notes:              req.Notes,
 	})
 
 	if err != nil {
@@ -61,7 +86,10 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 }
 
 type updateTransactionStatusRequest struct {
-	Status string `json:"status" binding:"required"`
+	Status             string   `json:"status" binding:"required"`
+	MeetingScheduledAt *string  `json:"meeting_scheduled_at"` // opsional, cuma dipakai saat status: "active"
+	MeetingLatitude    *float64 `json:"meeting_latitude"`
+	MeetingLongitude   *float64 `json:"meeting_longitude"`
 }
 
 // UpdateStatus menangani PATCH /transactions/:id/status
@@ -77,9 +105,32 @@ func (h *TransactionHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
+	var meetingTime *time.Time
+	if req.MeetingScheduledAt != nil {
+		parsed, err := time.Parse(time.RFC3339, *req.MeetingScheduledAt)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "VALIDATION_ERROR",
+					"message": "Format meeting_scheduled_at tidak valid, gunakan format ISO8601 (contoh: 2026-09-15T14:00:00+07:00)",
+				},
+			})
+			return
+		}
+		meetingTime = &parsed
+	}
+
 	requesterID, _ := c.Get(string(middleware.UserIDContextKey))
 
-	err := h.transactionService.UpdateStatus(c.Request.Context(), transactionID, requesterID.(string), req.Status)
+	err := h.transactionService.UpdateStatus(c.Request.Context(), service.UpdateStatusInput{
+		TransactionID:      transactionID,
+		RequesterID:        requesterID.(string),
+		NewStatus:          req.Status,
+		MeetingScheduledAt: meetingTime,
+		MeetingLatitude:    req.MeetingLatitude,
+		MeetingLongitude:   req.MeetingLongitude,
+	})
 
 	if err != nil {
 		switch {
