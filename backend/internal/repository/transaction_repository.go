@@ -222,3 +222,110 @@ func (r *TransactionRepository) UpdateStatus(ctx context.Context, input UpdateSt
 
 	return tx.Commit(ctx)
 }
+
+type TransactionSummary struct {
+	TransactionID      string     `json:"transaction_id"`
+	Status             string     `json:"status"`
+	Role               string     `json:"role"` // "borrower" atau "lender" -- relatif ke user yang login
+	ItemID             string     `json:"item_id"`
+	ItemTitle          string     `json:"item_title"`
+	ItemCoverPhotoURL  *string    `json:"item_cover_photo_url"`
+	CounterpartID      string     `json:"counterpart_id"` // pihak lawan (kalau saya borrower, ini lender, dst)
+	CounterpartName    string     `json:"counterpart_name"`
+	AgreedReturnDate   *time.Time `json:"agreed_return_date"`
+	ReturnedAt         *time.Time `json:"returned_at"`
+	MeetingScheduledAt *time.Time `json:"meeting_scheduled_at"`
+	CreatedAt          time.Time  `json:"created_at"`
+}
+
+// ListByUser mengambil semua transaksi milik user (baik sebagai borrower maupun lender)
+func (r *TransactionRepository) ListByUser(ctx context.Context, userID string) ([]TransactionSummary, error) {
+	query := `
+		SELECT
+			t.id, t.status,
+			CASE WHEN t.borrower_id = $1 THEN 'borrower' ELSE 'lender' END AS role,
+			t.item_id, i.title,
+			(SELECT ip.photo_url FROM item_photos ip WHERE ip.item_id = i.id ORDER BY ip.sort_order ASC LIMIT 1),
+			CASE WHEN t.borrower_id = $1 THEN t.lender_id ELSE t.borrower_id END AS counterpart_id,
+			CASE WHEN t.borrower_id = $1 THEN lu.full_name ELSE bu.full_name END AS counterpart_name,
+			t.agreed_return_date, t.returned_at, t.meeting_scheduled_at, t.created_at
+		FROM transactions t
+		JOIN items i ON i.id = t.item_id
+		JOIN users bu ON bu.id = t.borrower_id
+		JOIN users lu ON lu.id = t.lender_id
+		WHERE t.borrower_id = $1 OR t.lender_id = $1
+		ORDER BY t.created_at DESC
+	`
+
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []TransactionSummary
+	for rows.Next() {
+		var s TransactionSummary
+		if err := rows.Scan(
+			&s.TransactionID, &s.Status, &s.Role, &s.ItemID, &s.ItemTitle, &s.ItemCoverPhotoURL,
+			&s.CounterpartID, &s.CounterpartName,
+			&s.AgreedReturnDate, &s.ReturnedAt, &s.MeetingScheduledAt, &s.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		results = append(results, s)
+	}
+	if results == nil {
+		results = []TransactionSummary{}
+	}
+	return results, nil
+}
+
+type TransactionDetail struct {
+	TransactionID      string     `json:"transaction_id"`
+	Status             string     `json:"status"`
+	ItemID             string     `json:"item_id"`
+	ItemTitle          string     `json:"item_title"`
+	ItemMarketPrice    float64    `json:"item_market_price"`
+	BorrowerID         string     `json:"borrower_id"`
+	BorrowerName       string     `json:"borrower_name"`
+	LenderID           string     `json:"lender_id"`
+	LenderName         string     `json:"lender_name"`
+	AgreedReturnDate   *time.Time `json:"agreed_return_date"`
+	ReturnedAt         *time.Time `json:"returned_at"`
+	MeetingScheduledAt *time.Time `json:"meeting_scheduled_at"`
+	MeetingPointText   *string    `json:"meeting_point_text"` // format "POINT(lng lat)", dikonversi lebih lanjut kalau perlu
+	Notes              *string    `json:"notes"`
+	CreatedAt          time.Time  `json:"created_at"`
+}
+
+// GetDetail mengambil detail 1 transaksi -- authorization (borrower/lender) dicek di service layer
+func (r *TransactionRepository) GetDetail(ctx context.Context, transactionID string) (*TransactionDetail, error) {
+	var d TransactionDetail
+	query := `
+		SELECT
+			t.id, t.status, t.item_id, i.title, i.market_price,
+			t.borrower_id, bu.full_name,
+			t.lender_id, lu.full_name,
+			t.agreed_return_date, t.returned_at, t.meeting_scheduled_at,
+			ST_AsText(t.meeting_point), t.notes, t.created_at
+		FROM transactions t
+		JOIN items i ON i.id = t.item_id
+		JOIN users bu ON bu.id = t.borrower_id
+		JOIN users lu ON lu.id = t.lender_id
+		WHERE t.id = $1
+	`
+	err := r.db.QueryRow(ctx, query, transactionID).Scan(
+		&d.TransactionID, &d.Status, &d.ItemID, &d.ItemTitle, &d.ItemMarketPrice,
+		&d.BorrowerID, &d.BorrowerName, &d.LenderID, &d.LenderName,
+		&d.AgreedReturnDate, &d.ReturnedAt, &d.MeetingScheduledAt,
+		&d.MeetingPointText, &d.Notes, &d.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrTransactionNotFound
+		}
+		return nil, err
+	}
+	return &d, nil
+}

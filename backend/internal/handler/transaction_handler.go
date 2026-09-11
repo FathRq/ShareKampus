@@ -155,3 +155,40 @@ func (h *TransactionHandler) UpdateStatus(c *gin.Context) {
 		"data":    gin.H{"message": "Status transaksi berhasil diperbarui"},
 	})
 }
+
+// List menangani GET /transactions
+func (h *TransactionHandler) List(c *gin.Context) {
+	userID, _ := c.Get(string(middleware.UserIDContextKey))
+
+	transactions, err := h.transactionService.ListByUser(c.Request.Context(), userID.(string))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   gin.H{"code": "INTERNAL_SERVER_ERROR", "message": "Gagal mengambil daftar transaksi"},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": transactions})
+}
+
+// GetDetail menangani GET /transactions/:id
+func (h *TransactionHandler) GetDetail(c *gin.Context) {
+	transactionID := c.Param("id")
+	requesterID, _ := c.Get(string(middleware.UserIDContextKey))
+
+	detail, err := h.transactionService.GetDetail(c.Request.Context(), transactionID, requesterID.(string))
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrTransactionNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "TRANSACTION_NOT_FOUND", "message": err.Error()}})
+		case errors.Is(err, repository.ErrNotAuthorizedForAction):
+			c.JSON(http.StatusForbidden, gin.H{"success": false, "error": gin.H{"code": "FORBIDDEN", "message": err.Error()}})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_SERVER_ERROR", "message": "Gagal mengambil detail transaksi"}})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": detail})
+}

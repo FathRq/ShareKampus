@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
-	"log"
-	"net/http"
-
 	"github.com/FathRq/ShareKampus/backend/internal/config"
 	"github.com/FathRq/ShareKampus/backend/internal/handler"
 	"github.com/FathRq/ShareKampus/backend/internal/middleware"
 	"github.com/FathRq/ShareKampus/backend/internal/repository"
 	"github.com/FathRq/ShareKampus/backend/internal/service"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"log"
+	"net/http"
+	"time"
 )
 
 func main() {
@@ -54,6 +55,14 @@ func main() {
 
 	router := gin.Default()
 
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"}, // sementara buat development, nanti dipersempit saat deploy
+		AllowMethods:     []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
 	router.GET("/health", func(c *gin.Context) {
 		dbErr := pool.Ping(context.Background())
 		dbStatus := "connected"
@@ -83,6 +92,8 @@ func main() {
 	router.POST("/reviews", requireAuth, reviewHandler.Create)
 	router.GET("/users/:id/trust-score", userHandler.TrustScore)
 	router.GET("/stats/expense-saver", statsHandler.ExpenseSaver)
+	router.GET("/transactions", requireAuth, transactionHandler.List)
+	router.GET("/transactions/:id", requireAuth, transactionHandler.GetDetail)
 
 	router.Run(":" + cfg.Port)
 }

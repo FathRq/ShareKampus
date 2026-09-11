@@ -67,3 +67,18 @@ func (s *TransactionService) UpdateStatus(ctx context.Context, input UpdateStatu
 		MeetingLongitude:   input.MeetingLongitude,
 	})
 }
+
+func (s *TransactionService) ListByUser(ctx context.Context, userID string) ([]repository.TransactionSummary, error) {
+	return s.transactionRepo.ListByUser(ctx, userID)
+}
+
+func (s *TransactionService) GetDetail(ctx context.Context, transactionID, requesterID string) (*repository.TransactionDetail, error) {
+	detail, err := s.transactionRepo.GetDetail(ctx, transactionID)
+	if err != nil {
+		return nil, err
+	}
+	if requesterID != detail.BorrowerID && requesterID != detail.LenderID {
+		return nil, repository.ErrNotAuthorizedForAction
+	}
+	return detail, nil
+}
