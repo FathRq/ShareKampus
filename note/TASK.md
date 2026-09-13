@@ -4,8 +4,8 @@
 **Tim:**
 - **Lead** — Full-stack Lead Developer (kamu)
 - **Sihan** — Frontend Developer
-- **Kaysa** — Lead Proposal / SDGs
-- **Sarah** — Technical Writer / QA / GitHub Manager
+- **Kay** — Lead Proposal / SDGs
+- **Sar** — Technical Writer / QA / GitHub Manager
 
 ---
 
@@ -69,6 +69,8 @@
 **Catatan tambahan (di luar rencana awal, dikerjakan karena kebutuhan berkembang saat development):**
 - [x] **Bonus:** `DELETE /items/:id` — hapus listing barang, otomatis soft-delete (kalau punya riwayat transaksi) atau hard-delete (kalau belum pernah dipinjam), demi menjaga integritas Trust Score & Expense Saver
 - [x] **Bonus:** Field jadwal & lokasi ketemuan (`meeting_scheduled_at`, `meeting_point`, `notes`) di `POST /transactions` — peminjam usulkan, pemilik bisa override sebagian saat approve
+- [x] **Bonus:** `GET /transactions` & `GET /transactions/:id` — daftar & detail transaksi milik user, dibutuhkan frontend untuk halaman "Transaksi Saya"
+- [x] **Bonus:** Parameter pencarian kata kunci (`q`) di `GET /items/nearby` — search barang berdasarkan judul, bukan cuma filter kategori/lokasi
 
 ### Fase 3: Hari 11–15 (Polish & Submission)
 - [x] **H11:** Implementasi `get_expense_saver_total()` + ~~UI Expense Saver Counter Card di beranda~~ *(UI belum)*

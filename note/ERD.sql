@@ -164,7 +164,8 @@ CREATE OR REPLACE FUNCTION get_nearby_items(
     user_lat        DOUBLE PRECISION,
     user_lng        DOUBLE PRECISION,
     radius_meter    INTEGER DEFAULT 2500,
-    filter_category item_category DEFAULT NULL
+    filter_category item_category DEFAULT NULL,
+    search_query    TEXT DEFAULT NULL
 )
 RETURNS TABLE (
     item_id            UUID,
@@ -225,12 +226,16 @@ BEGIN
             radius_meter
         )
         AND (filter_category IS NULL OR i.category = filter_category)
+        AND (search_query IS NULL OR i.title ILIKE '%' || search_query || '%')
     ORDER BY distance_meter ASC;
 END;
 $$;
 
 -- Contoh pemanggilan:
--- SELECT * FROM get_nearby_items(-7.2814, 112.7211, 2500, 'alat_lab');
+-- SELECT * FROM get_nearby_items(-7.2814, 112.7211, 2500, 'alat_lab', 'kalkulator');
+-- Catatan: kalau ada perubahan signature fungsi ini lagi di masa depan (tambah/ubah
+-- parameter), jalankan DROP FUNCTION dulu sebelum CREATE OR REPLACE -- PostgreSQL
+-- tidak mengizinkan CREATE OR REPLACE saat parameter/return type berubah.
 
 -- ============================================================================
 -- 7. STORED FUNCTION: Recalculate Trust Score
