@@ -19,7 +19,6 @@ func NewItemHandler(itemService *service.ItemService) *ItemHandler {
 	return &ItemHandler{itemService: itemService}
 }
 
-// createItemRequest merepresentasikan bentuk JSON yang dikirim frontend untuk membuat listing
 type createItemRequest struct {
 	Title           string   `json:"title" binding:"required"`
 	Description     string   `json:"description"`
@@ -118,13 +117,16 @@ func (h *ItemHandler) FindNearby(c *gin.Context) {
 		return
 	}
 
-	// radius opsional -- kalau kosong atau invalid, biarkan 0 (service akan pakai default 2500m)
 	radius, _ := strconv.Atoi(c.Query("radius"))
 
-	// category opsional -- kirim nil kalau kosong, bukan string ""
 	var category *string
 	if val := c.Query("category"); val != "" {
 		category = &val
+	}
+
+	var searchQuery *string
+	if val := c.Query("q"); val != "" {
+		searchQuery = &val
 	}
 
 	items, err := h.itemService.FindNearby(c.Request.Context(), service.FindNearbyInput{
@@ -132,6 +134,7 @@ func (h *ItemHandler) FindNearby(c *gin.Context) {
 		Longitude:   lng,
 		RadiusMeter: radius,
 		Category:    category,
+		SearchQuery: searchQuery,
 	})
 
 	if err != nil {
@@ -186,7 +189,7 @@ func (h *ItemHandler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data": gin.H{
-			"action": action, // "soft_deleted" atau "hard_deleted"
+			"action": action,
 		},
 	})
 }

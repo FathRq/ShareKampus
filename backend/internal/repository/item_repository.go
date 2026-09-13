@@ -97,11 +97,12 @@ type NearbyItem struct {
 }
 
 // FindNearby memanggil fungsi PostGIS get_nearby_items untuk mencari barang
-// dalam radius tertentu dari titik koordinat pengguna
-func (r *ItemRepository) FindNearby(ctx context.Context, lat, lng float64, radiusMeter int, category *string) ([]NearbyItem, error) {
-	query := `SELECT * FROM get_nearby_items($1, $2, $3, $4)`
+// dalam radius tertentu dari titik koordinat pengguna, dengan filter kategori
+// dan kata kunci judul (opsional)
+func (r *ItemRepository) FindNearby(ctx context.Context, lat, lng float64, radiusMeter int, category *string, searchQuery *string) ([]NearbyItem, error) {
+	query := `SELECT * FROM get_nearby_items($1, $2, $3, $4, $5)`
 
-	rows, err := r.db.Query(ctx, query, lat, lng, radiusMeter, category)
+	rows, err := r.db.Query(ctx, query, lat, lng, radiusMeter, category, searchQuery)
 	if err != nil {
 		return nil, err
 	}

@@ -7,12 +7,9 @@ import (
 	"github.com/FathRq/ShareKampus/backend/internal/repository"
 )
 
-var (
-	ErrInvalidCategory        = errors.New("kategori barang tidak valid")
-	ErrInvalidTransactionType = errors.New("tipe transaksi tidak valid")
-)
+var ErrInvalidCategory = errors.New("kategori tidak valid")
+var ErrInvalidTransactionType = errors.New("tipe transaksi tidak valid")
 
-// Daftar nilai yang sah, HARUS sama persis dengan ENUM di ERD.sql
 var validCategories = map[string]bool{
 	"buku":       true,
 	"alat_lab":   true,
@@ -24,6 +21,14 @@ var validTransactionTypes = map[string]bool{
 	"pinjam":   true,
 	"barter":   true,
 	"keduanya": true,
+}
+
+type ItemService struct {
+	itemRepo *repository.ItemRepository
+}
+
+func NewItemService(itemRepo *repository.ItemRepository) *ItemService {
+	return &ItemService{itemRepo: itemRepo}
 }
 
 type CreateItemInput struct {
@@ -39,27 +44,12 @@ type CreateItemInput struct {
 	MaxLoanDays     int
 }
 
-type ItemService struct {
-	itemRepo *repository.ItemRepository
-}
-
-func NewItemService(itemRepo *repository.ItemRepository) *ItemService {
-	return &ItemService{itemRepo: itemRepo}
-}
-
 func (s *ItemService) CreateItem(ctx context.Context, input CreateItemInput) (string, error) {
 	if !validCategories[input.Category] {
 		return "", ErrInvalidCategory
 	}
-
 	if !validTransactionTypes[input.TransactionType] {
 		return "", ErrInvalidTransactionType
-	}
-
-	// Kalau max_loan_days gak diisi (0), pakai default 7 hari
-	maxLoanDays := input.MaxLoanDays
-	if maxLoanDays == 0 {
-		maxLoanDays = 7
 	}
 
 	return s.itemRepo.Create(ctx, repository.CreateItemInput{
@@ -72,32 +62,29 @@ func (s *ItemService) CreateItem(ctx context.Context, input CreateItemInput) (st
 		PhotoURLs:       input.PhotoURLs,
 		Latitude:        input.Latitude,
 		Longitude:       input.Longitude,
-		MaxLoanDays:     maxLoanDays,
+		MaxLoanDays:     input.MaxLoanDays,
 	})
-
 }
 
-// FindNearbyInput menampung parameter pencarian barang terdekat
 type FindNearbyInput struct {
 	Latitude    float64
 	Longitude   float64
 	RadiusMeter int
 	Category    *string
+	SearchQuery *string
 }
 
-// FindNearby mencari barang dalam radius tertentu dari lokasi pengguna
 func (s *ItemService) FindNearby(ctx context.Context, input FindNearbyInput) ([]repository.NearbyItem, error) {
 	radius := input.RadiusMeter
-	if radius == 0 {
-		radius = 2500 // default 2.5km sesuai FR-02 di PRD.md
+	if radius <= 0 {
+		radius = 2500
 	}
-
-	// Kalau ada filter kategori, validasi dulu -- sama seperti validasi di CreateItem
-	if input.Category != nil && !validCategories[*input.Category] {
-		return nil, ErrInvalidCategory
+	if input.Category != nil {
+		if !validCategories[*input.Category] {
+			return nil, ErrInvalidCategory
+		}
 	}
-
-	return s.itemRepo.FindNearby(ctx, input.Latitude, input.Longitude, radius, input.Category)
+	return s.itemRepo.FindNearby(ctx, input.Latitude, input.Longitude, radius, input.Category, input.SearchQuery)
 }
 
 func (s *ItemService) DeleteItem(ctx context.Context, itemID, requesterID string) (string, error) {
