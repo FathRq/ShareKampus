@@ -1,7 +1,7 @@
 import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import { AppLayout, ProtectedRoute } from "./components/Layout";
+import { AppLayout, AuthShell, GuestRoute, ProtectedRoute } from "./components/Layout";
 
 const LoginPage = lazy(() => import("./pages/Login").then((m) => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import("./pages/Register").then((m) => ({ default: m.RegisterPage })));
@@ -33,9 +33,13 @@ export default function App() {
       <AuthProvider>
         <Suspense fallback={<PageFallback />}>
           <Routes>
+            <Route element={<AuthShell />}>
+              <Route element={<GuestRoute />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+              </Route>
+            </Route>
             <Route element={<AppLayout />}>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
               <Route element={<ProtectedRoute />}>
                 <Route index element={<HomePage />} />
                 <Route path="/tambah" element={<AddItemPage />} />
