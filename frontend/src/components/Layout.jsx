@@ -18,6 +18,19 @@ export function ProtectedRoute() {
   return <Outlet />;
 }
 
+export function GuestRoute() {
+  const { isAuthed, booting } = useAuth();
+  if (booting) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-cloud text-sm font-medium text-slate-gray">
+        Memuat sesi...
+      </div>
+    );
+  }
+  if (isAuthed) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
 export function AppLayout() {
   return (
     <div className="min-h-screen bg-cloud text-ink-navy">
@@ -31,18 +44,29 @@ export function AppLayout() {
   );
 }
 
-/** Two-column auth layout: form left, product card + blob right (blob only here). */
-export function AuthLayout({ title, subtitle, children, card }) {
+export function AuthShell() {
   return (
-    <div className="relative mx-auto grid w-full max-w-[1000px] items-stretch gap-8 py-8">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-cloud text-ink-navy">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 overflow-hidden md:hidden"
       >
-        <div className="absolute -top-10 -right-16 h-56 w-56 rounded-full bg-coral-magenta/20 blur-3xl" />
-        <div className="absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-sky-cyan/20 blur-3xl" />
+        <div className="absolute -top-10 -right-16 h-56 w-56 rounded-full bg-coral-magenta/25 blur-3xl" />
+        <div className="absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-sky-cyan/25 blur-3xl" />
       </div>
-      <div className="relative grid md:grid-cols-2 md:overflow-hidden md:rounded-3xl md:border md:border-hairline md:bg-paper md:shadow-card">
+      <TopBar variant="auth" />
+      <main className="relative flex flex-1 items-center justify-center px-4 py-6 sm:px-6 sm:py-8">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
+/** Two-column auth layout: form left, product card + blob right. Used inside AuthShell (centered). */
+export function AuthLayout({ title, subtitle, children, card }) {
+  return (
+    <div className="flex w-full max-w-[1000px] items-center justify-center">
+      <div className="grid w-full md:grid-cols-2 md:overflow-hidden md:rounded-3xl md:border md:border-hairline md:bg-paper md:shadow-card">
         <div className="rounded-2xl border border-hairline bg-paper p-6 shadow-linkcard md:rounded-none md:border-0 md:shadow-none">
           <h1 className="text-[28px] font-bold leading-tight">{title}</h1>
           {subtitle && <p className="mt-2 text-[15px] text-slate-gray">{subtitle}</p>}
