@@ -16,4 +16,4 @@ frontend/build/
 
 # OS/editor files
 .DS_Store
-*.swp
+*.swpbackend/main
