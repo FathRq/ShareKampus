@@ -182,7 +182,6 @@ Detail lengkap format request/response ada di [`FRONTEND_GUIDE.md`](./FRONTEND_G
 Program Studi Teknik Informatika, Universitas Negeri Surabaya.
 
 ## Pembimbing
-## Pembimbing
 
 | Nama | NIP/NIDN | Peran |
 |---|---|---|
