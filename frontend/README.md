@@ -1,19 +1,46 @@
-# React + Vite
+# ShareKampus — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Antarmuka web ShareKampus, dibangun dengan **React + Vite + Tailwind CSS**.
 
-Currently, two official plugins are available:
+> Dokumentasi lengkap proyek ada di [README.md root](../README.md). Dokumen ini fokus ke bagian frontend.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Menjalankan Secara Lokal
 
-## React Compiler
+### Prasyarat
+- Node.js 18+
+- Backend sudah berjalan (lokal di `localhost:8080`, atau alamat deploy)
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+### Langkah
 
-Note: This will impact Vite dev & build performances.
-You can also try [the experimental native React Compiler support in plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#rust-react-compiler) by using `compiler: true` in the plugin options instead of using the Babel plugin.
+```bash
+cp .env.example .env
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+Buka `http://localhost:5173`.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Environment Variables
+
+| Key | Keterangan |
+|---|---|
+| `VITE_API_BASE_URL` | Alamat backend (default: `http://localhost:8080`) |
+| `VITE_SUPABASE_URL` | URL project Supabase (untuk upload foto ke Storage) |
+| `VITE_SUPABASE_ANON_KEY` | Publishable key Supabase (aman untuk client-side, dilindungi RLS) |
+| `VITE_ITEM_PHOTO_BUCKET` | Nama bucket Supabase Storage untuk foto barang |
+
+Nilai default di `.env.example` sudah valid untuk instance Supabase proyek ini.
+
+## Build untuk Production
+
+```bash
+npm run build
+```
+
+Hasil build ada di folder `dist/`, siap di-deploy ke static hosting (Vercel/Netlify/dsb).
+
+> **Catatan untuk deploy:** karena aplikasi ini pakai client-side routing (React Router), platform hosting perlu dikonfigurasi supaya semua path mengarah ke `index.html` (lihat `vercel.json`), kalau tidak refresh di halaman selain `/` akan menampilkan 404.
+
+## Dokumentasi API
+
+Lihat [`../FRONTEND_GUIDE.md`](../FRONTEND_GUIDE.md) untuk daftar lengkap endpoint backend yang dipakai aplikasi ini.
