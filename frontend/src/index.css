@@ -1,21 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  /* Colors — Calendly reference */
-  --color-ink-navy: #0b3558;
-  --color-signal-blue: #006bff;
-  --color-slate-gray: #476788;
-  --color-mist-gray: #a6bbd1;
-  --color-cloud: #f8f9fb;
-  --color-paper: #ffffff;
-  --color-pebble: #f0f3f8;
-  --color-hairline: #d4e0ed;
-  --color-deep-cobalt: #004eba;
-  --color-coral-magenta: #e55cff;
-  --color-sky-cyan: #0099ff;
-  --color-badge-tint: #e6f0ff;
+  /* ── Brand — TailGrids v3 SaaSly (biru/ungu/nila, lih. DESIGN.md) ──
+     Gradasi memakai bawaan Tailwind (blue/indigo/purple);
+     indigo/purple tidak perlu token baru. */
+  --color-primary: #3758f9;
+  --color-primary-dark: #1b44c8;
+  --color-primary-light: #eef2ff;
 
-  /* Semantic status tints (pill badges, text stays navy family) */
+  /* Semantic status tints — permanen, hanya untuk status/badge. */
   --color-success-bg: #dcfce7;
   --color-success-text: #166534;
   --color-warning-bg: #fef3c7;
@@ -26,16 +19,45 @@
   /* Typography */
   --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
-  /* Shadows — blue-tinted only, never neutral black */
-  --shadow-card: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px,
-    rgba(71, 103, 136, 0.03) 0px 8px 15px 0px,
-    rgba(71, 103, 136, 0.08) 0px 30px 50px 0px;
-  --shadow-linkcard: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px,
-    rgba(71, 103, 136, 0.03) 0px 4px 10px 0px,
-    rgba(71, 103, 136, 0.05) 0px 10px 20px 0px;
-  --shadow-button: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px,
-    rgba(71, 103, 136, 0.03) 0px 8px 15px 0px,
-    rgba(71, 103, 136, 0.06) 0px 15px 30px 0px;
+  /* Animasi dropdown: slide-down + fade, cepat-snappy (±150ms ease-out) */
+  --animate-dropdown: dropdown-in 0.15s ease-out;
+
+  @keyframes dropdown-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Animasi dialog: meluncur dari atas + fade (±200ms ease-out) */
+  --animate-dialog: dialog-in 0.2s ease-out;
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(-16px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Animasi overlay: fade saja (±150ms) */
+  --animate-fade: fade-in 0.15s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 html {
@@ -45,8 +67,8 @@ html {
 
 body {
   margin: 0;
-  background-color: var(--color-cloud);
-  color: var(--color-ink-navy);
+  background-color: var(--color-gray-50);
+  color: var(--color-gray-900);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: clip;
@@ -61,5 +83,16 @@ img {
 }
 
 ::placeholder {
-  color: var(--color-mist-gray);
+  color: var(--color-gray-400);
+}
+
+/* Hormati preferensi gerak pengguna: matikan semua animasi/transisi */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

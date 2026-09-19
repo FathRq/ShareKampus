@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { campusApi } from "../lib/api";
 import { AuthLayout } from "../components/Layout";
@@ -16,6 +17,7 @@ export function RegisterPage() {
   const [locLoading, setLocLoading] = useState(true);
   const [locError, setLocError] = useState(null);
   const [form, setForm] = useState({ full_name: "", email: "", password: "", campus_location_id: "" });
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
 
@@ -43,7 +45,7 @@ export function RegisterPage() {
     setErr(null);
     try {
       await register(form);
-      navigate("/", { replace: true });
+      navigate("/katalog", { replace: true });
     } catch (e2) {
       setErr(e2);
     } finally {
@@ -56,13 +58,13 @@ export function RegisterPage() {
       title="Daftar dengan email kampus"
       subtitle="Satu akun untuk pinjam & barter di sekitar kampusmu."
       card={
-        <div className="rounded-2xl border border-hairline bg-paper p-6 shadow-card">
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-gray">Alur verifikasi</p>
-          <ol className="mt-3 space-y-3 text-sm text-slate-gray">
-            <li><span className="font-bold text-ink-navy">1.</span> Isi nama lengkap</li>
-            <li><span className="font-bold text-ink-navy">2.</span> Isi email kampus resmi</li>
-            <li><span className="font-bold text-ink-navy">3.</span> Pilih lokasi kampus fisik terdekat</li>
-            <li><span className="font-bold text-ink-navy">4.</span> Langsung masuk & mulai cari barang</li>
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Alur verifikasi</p>
+          <ol className="mt-3 space-y-3 text-sm text-gray-600">
+            <li><span className="font-bold text-gray-900">1.</span> Isi nama lengkap</li>
+            <li><span className="font-bold text-gray-900">2.</span> Isi email kampus resmi</li>
+            <li><span className="font-bold text-gray-900">3.</span> Pilih lokasi kampus fisik terdekat</li>
+            <li><span className="font-bold text-gray-900">4.</span> Langsung masuk & mulai cari barang</li>
           </ol>
         </div>
       }
@@ -92,15 +94,27 @@ export function RegisterPage() {
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
         />
-        <TextInput
-          label="Kata sandi (min. 8 karakter)"
-          type="password"
-          required
-          minLength={8}
-          placeholder="••••••••"
-          value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-        />
+        <div className="relative">
+          <TextInput
+            label="Kata sandi (min. 8 karakter)"
+            type={showPw ? "text" : "password"}
+            required
+            minLength={8}
+            placeholder="••••••••"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            className="pr-11"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPw((v) => !v)}
+            aria-label={showPw ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+            aria-pressed={showPw}
+            className="absolute right-2 bottom-2 rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
         <SelectInput
           label="Lokasi kampus"
           required
@@ -138,9 +152,9 @@ export function RegisterPage() {
         <PrimaryButton type="submit" isLoading={loading} className="w-full">
           Daftar
         </PrimaryButton>
-        <p className="text-center text-sm text-slate-gray">
+        <p className="text-center text-sm text-gray-600">
           Sudah punya akun?{" "}
-          <Link to="/login" className="font-semibold text-signal-blue hover:underline">
+          <Link to="/login" className="font-semibold text-primary-dark hover:underline">
             Masuk
           </Link>
         </p>

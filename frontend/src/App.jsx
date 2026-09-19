@@ -1,6 +1,7 @@
 import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 import { AppLayout, AuthShell, GuestRoute, ProtectedRoute } from "./components/Layout";
 
 const LoginPage = lazy(() => import("./pages/Login").then((m) => ({ default: m.LoginPage })));
@@ -18,10 +19,10 @@ const ProfilePage = lazy(() => import("./pages/Profile").then((m) => ({ default:
 function PageFallback() {
   return (
     <div className="mx-auto max-w-[640px] space-y-3 py-10">
-      <div className="h-6 w-48 animate-pulse rounded bg-pebble" />
-      <div className="rounded-2xl border border-hairline bg-paper p-6 shadow-linkcard">
-        <div className="h-4 w-2/3 animate-pulse rounded bg-pebble" />
-        <div className="mt-3 h-4 w-1/2 animate-pulse rounded bg-pebble" />
+      <div className="h-6 w-48 animate-pulse rounded bg-gray-100" />
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="h-4 w-2/3 animate-pulse rounded bg-gray-100" />
+        <div className="mt-3 h-4 w-1/2 animate-pulse rounded bg-gray-100" />
       </div>
     </div>
   );
@@ -31,8 +32,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ToastProvider>
         <Suspense fallback={<PageFallback />}>
           <Routes>
+            {/* Tanpa landing publik — root langsung ke login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
             <Route element={<AuthShell />}>
               <Route element={<GuestRoute />}>
                 <Route path="/login" element={<LoginPage />} />
@@ -41,7 +45,7 @@ export default function App() {
             </Route>
             <Route element={<AppLayout />}>
               <Route element={<ProtectedRoute />}>
-                <Route index element={<HomePage />} />
+                <Route path="/katalog" element={<HomePage />} />
                 <Route path="/tambah" element={<AddItemPage />} />
                 <Route path="/transaksi" element={<TransactionsPage />} />
                 <Route path="/transaksi/:id" element={<TransactionDetailPage />} />
@@ -51,6 +55,7 @@ export default function App() {
             </Route>
           </Routes>
         </Suspense>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );

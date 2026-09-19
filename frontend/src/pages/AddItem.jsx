@@ -5,6 +5,7 @@ import { campusApi, itemApi } from "../lib/api";
 import { cleanupUploadedPhotos, isSupabaseConfigured, uploadItemPhoto } from "../lib/supabase";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { PrimaryButton, SelectInput, TextArea, TextInput } from "../components/ui";
+import { Dropdown } from "../components/Dropdown";
 import { ERROR_MESSAGE_ID } from "../lib/format";
 
 const CATEGORIES = [
@@ -156,17 +157,17 @@ export function AddItemPage() {
   if (doneId) {
     return (
       <div className="mx-auto max-w-[560px] py-12 text-center">
-        <div className="rounded-2xl border border-hairline bg-paper p-8 shadow-card">
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-md">
           <p className="text-4xl">🎉</p>
-          <h1 className="mt-3 text-2xl font-bold">Barang berhasil dibagikan!</h1>
-          <p className="mt-2 text-sm text-slate-gray">
-            ID: <code className="rounded bg-pebble px-1.5 py-0.5">{doneId}</code> — sudah muncul di
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-gray-900">Barang berhasil dibagikan!</h1>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">
+            ID: <code className="rounded bg-gray-100 px-1.5 py-0.5">{doneId}</code> — sudah muncul di
             katalog dalam radius kampus.
           </p>
           <div className="mt-6 flex gap-2">
             <Link
-              to="/"
-              className="flex-1 rounded-lg bg-signal-blue px-4 py-2.5 text-sm font-semibold text-white shadow-button transition-all duration-150 hover:brightness-95 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-blue/50 focus-visible:ring-offset-2"
+              to="/katalog"
+              className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-center text-sm font-semibold text-white shadow-md transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg active:translate-y-0 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
             >
               Lihat katalog
             </Link>
@@ -186,7 +187,7 @@ export function AddItemPage() {
                 setFiles([]);
                 setPreviews([]);
               }}
-              className="rounded-lg px-4 py-2.5 text-sm font-semibold text-ink-navy transition-all duration-150 hover:bg-pebble active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-blue/50 focus-visible:ring-offset-2"
+              className="rounded-lg px-4 py-2.5 text-sm font-semibold text-gray-700 transition-all duration-150 hover:bg-gray-100 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
             >
               Tambah lagi
             </button>
@@ -198,12 +199,12 @@ export function AddItemPage() {
 
   return (
     <div className="mx-auto w-full max-w-[640px]">
-      <h1 className="text-3xl font-bold">Bagikan barang</h1>
-      <p className="mt-2 text-[15px] text-slate-gray">
+      <h1 className="text-3xl font-bold tracking-tight text-gray-900">Bagikan barang</h1>
+      <p className="mt-2 text-[15px] leading-relaxed text-gray-600">
         Lengkapi detail di bawah. Barang langsung tampil di katalog nearby setelah tersimpan.
       </p>
 
-      <form onSubmit={submit} className="mt-6 space-y-4 rounded-2xl border border-hairline bg-paper p-5 shadow-linkcard sm:p-6">
+      <form onSubmit={submit} className="mt-6 space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
         <TextInput label="Judul barang *" required placeholder="Jas lab ukuran M" value={form.title} onChange={set("title")} />
 
         <TextArea
@@ -246,7 +247,7 @@ export function AddItemPage() {
 
         {/* FOTO — upload-only via Supabase Storage, wajib ≥1 */}
         <div>
-          <span className="mb-1.5 block text-sm font-semibold text-ink-navy">
+          <span className="mb-1.5 block text-sm font-semibold text-gray-900">
             Foto barang * (wajib 1–3)
           </span>
           {!storageReady ? (
@@ -255,7 +256,7 @@ export function AddItemPage() {
             </p>
           ) : (
             <>
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-hairline bg-pebble px-4 py-6 text-sm font-semibold text-slate-gray transition-all duration-150 hover:border-signal-blue hover:text-signal-blue focus-within:border-signal-blue focus-within:ring-2 focus-within:ring-signal-blue/25 active:scale-[0.99]">
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-100 px-4 py-6 text-sm font-semibold text-gray-600 transition-all duration-150 hover:border-primary hover:bg-primary-light hover:text-primary-dark focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25 active:scale-[0.99]">
                 <ImagePlus size={18} />
                 {files.length === 0 ? "Pilih foto dari HP (jpg/png, maks 2MB/file)" : "Tambah foto lagi"}
                 <input type="file" accept="image/*" multiple className="hidden" onChange={pickFiles} />
@@ -263,7 +264,7 @@ export function AddItemPage() {
               {previews.length > 0 && (
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   {previews.map((u, i) => (
-                    <div key={u} className="relative overflow-hidden rounded-xl border border-hairline">
+                    <div key={u} className="relative overflow-hidden rounded-xl border border-gray-200">
                       <img src={u} alt={`preview ${i + 1}`} className="aspect-square w-full object-cover" />
                       <button
                         type="button"
@@ -271,7 +272,7 @@ export function AddItemPage() {
                           setFiles(files.filter((_, j) => j !== i));
                           setPreviews(previews.filter((_, j) => j !== i));
                         }}
-                        className="absolute right-1 top-1 rounded-full bg-ink-navy/70 p-1 text-white"
+                        className="absolute right-1 top-1 rounded-full bg-gray-900/70 p-1 text-white transition-transform hover:scale-110"
                         aria-label="Hapus foto"
                       >
                         <X size={14} />
@@ -286,37 +287,39 @@ export function AddItemPage() {
 
         {/* LOKASI */}
         <div>
-          <span className="mb-1.5 block text-sm font-semibold text-ink-navy">Lokasi barang *</span>
+          <span className="mb-1.5 block text-sm font-semibold text-gray-900">Lokasi barang *</span>
           <div className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
             <TextInput required placeholder="-7.314" value={form.latitude} onChange={set("latitude")} />
             <TextInput required placeholder="112.726" value={form.longitude} onChange={set("longitude")} />
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px]">
-            <span className="rounded-full bg-pebble px-2.5 py-1 font-semibold text-slate-gray">
+            <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-600">
               {geoStatus === "loading" ? "Mencari GPS..." : coords ? "GPS aktif" : "Titik kampus"}
             </span>
             {locations.length > 0 && (
-              <select
+              <Dropdown
                 value={campusId}
-                onChange={(e) => setCampusId(e.target.value)}
-                className="max-w-full rounded-full border border-hairline bg-pebble px-2.5 py-1 font-semibold outline-none transition-all duration-150 hover:border-mist-gray focus:border-signal-blue focus:ring-2 focus:ring-signal-blue/25"
-              >
-                {locations.map((l) => (
-                  <option key={l.id} value={l.id}>{l.campus_name} — {l.name}</option>
-                ))}
-              </select>
+                onChange={setCampusId}
+                options={locations.map((l) => ({
+                  value: l.id,
+                  label: `${l.campus_name} — ${l.name}`,
+                }))}
+                title="Titik acuan kampus"
+                align="left"
+                buttonClassName="rounded-full border-gray-200 bg-gray-100 hover:border-gray-400"
+              />
             )}
             <button
               type="button"
               onClick={useCampusPoint}
-              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 font-semibold text-signal-blue transition-all duration-150 hover:bg-pebble active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-blue/40"
+              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 font-semibold text-primary-dark transition-all duration-150 hover:bg-primary-light active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <LocateFixed size={14} /> Pakai titik kampus
             </button>
           </div>
         </div>
 
-        {uploadNote && <p className="flex items-center gap-2 text-sm text-slate-gray"><Loader2 size={15} className="animate-spin" />{uploadNote}</p>}
+        {uploadNote && <p className="flex items-center gap-2 text-sm text-gray-600"><Loader2 size={15} className="animate-spin" />{uploadNote}</p>}
         {err && (
           <p className="rounded-lg bg-danger-bg px-3 py-2 text-sm font-medium text-danger-text">
             {ERROR_MESSAGE_ID[err.code] || err.message}

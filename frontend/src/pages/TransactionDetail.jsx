@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Star } from "lucide-react";
+import { MapPin, Star } from "lucide-react";
 import { reviewApi, transactionApi } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
-import { ERROR_MESSAGE_ID, formatRp, formatTanggal, parsePointText } from "../lib/format";
+import { ERROR_MESSAGE_ID, formatRp, formatTanggal, mapsUrl, parsePointText } from "../lib/format";
 import { StatusBadge } from "../components/transactions/StatusBadge";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { useToast } from "../context/ToastContext";
 import { DarkButton, PrimaryButton, TextArea } from "../components/ui";
 
 function Row({ label, children }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2.5">
-      <span className="shrink-0 text-[13px] font-semibold text-slate-gray">{label}</span>
-      <span className="text-right text-sm font-medium break-words">{children}</span>
+      <span className="shrink-0 text-[13px] font-semibold text-gray-500">{label}</span>
+      <span className="text-right text-sm font-medium text-gray-900 break-words">{children}</span>
     </div>
   );
 }
@@ -19,10 +21,12 @@ function Row({ label, children }) {
 export function TransactionDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { push } = useToast();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [acting, setActing] = useState(null); // status being submitted
+  const [confirmAction, setConfirmAction] = useState(null); // "rejected" | "cancelled"
   const [actionErr, setActionErr] = useState(null);
 
   // Review form
@@ -51,11 +55,20 @@ export function TransactionDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  const STATUS_TOAST = {
+    active: "Pengajuan disetujui. Barang kini aktif dipinjam.",
+    rejected: "Pengajuan ditolak.",
+    cancelled: "Pengajuan dibatalkan.",
+    returned: "Transaksi ditandai selesai.",
+  };
+
   const doAction = async (status) => {
+    setConfirmAction(null);
     setActing(status);
     setActionErr(null);
     try {
       await transactionApi.updateStatus(id, { status });
+      push(STATUS_TOAST[status] || "Status transaksi diperbarui.");
       await load();
     } catch (e) {
       setActionErr(e);
@@ -75,6 +88,7 @@ export function TransactionDetailPage() {
         comment: comment.trim() || undefined,
       });
       setReviewDone(true);
+      push("Ulasan terkirim. Terima kasih!");
     } catch (e2) {
       setReviewErr(e2);
     } finally {
@@ -85,11 +99,11 @@ export function TransactionDetailPage() {
   if (loading) {
     return (
       <div className="mx-auto w-full max-w-[640px] space-y-3">
-        <div className="h-7 w-48 animate-pulse rounded bg-pebble" />
-        <div className="rounded-2xl border border-hairline bg-paper p-6 shadow-linkcard">
-          <div className="h-4 w-2/3 animate-pulse rounded bg-pebble" />
-          <div className="mt-3 h-4 w-1/2 animate-pulse rounded bg-pebble" />
-          <div className="mt-3 h-4 w-1/3 animate-pulse rounded bg-pebble" />
+        <div className="h-7 w-48 animate-pulse rounded bg-gray-100" />
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="h-4 w-2/3 animate-pulse rounded bg-gray-100" />
+          <div className="mt-3 h-4 w-1/2 animate-pulse rounded bg-gray-100" />
+          <div className="mt-3 h-4 w-1/3 animate-pulse rounded bg-gray-100" />
         </div>
       </div>
     );
@@ -97,15 +111,15 @@ export function TransactionDetailPage() {
 
   if (err || !detail) {
     return (
-      <div className="mx-auto max-w-[560px] rounded-2xl border border-hairline bg-paper p-8 text-center shadow-linkcard">
+      <div className="mx-auto max-w-[560px] rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
         <p className="font-bold text-danger-text">
           {ERROR_MESSAGE_ID[err?.code] || err?.message || "Transaksi tidak ditemukan"}
         </p>
         <div className="mt-4 flex justify-center gap-2">
-          <button onClick={load} className="rounded-lg bg-signal-blue px-4 py-2 text-sm font-semibold text-white shadow-button transition-all duration-150 hover:brightness-95 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-blue/50 focus-visible:ring-offset-2">
+          <button onClick={load} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-md transition-all duration-150 hover:-translate-y-0.5 hover:bg-primary-dark hover:shadow-lg active:translate-y-0 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2">
             Coba lagi
           </button>
-          <Link to="/transaksi" className="rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-150 hover:bg-pebble active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-blue/40">
+          <Link to="/transaksi" className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 transition-all duration-150 hover:bg-gray-100 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
             Kembali
           </Link>
         </div>
@@ -120,20 +134,20 @@ export function TransactionDetailPage() {
 
   return (
     <div className="mx-auto w-full max-w-[640px] space-y-4">
-      <Link to="/transaksi" className="text-sm font-semibold text-signal-blue hover:underline">
+      <Link to="/transaksi" className="text-sm font-semibold text-primary-dark hover:underline">
         ← Kembali ke daftar
       </Link>
 
-      <div className="rounded-2xl border border-hairline bg-paper p-5 shadow-card sm:p-6">
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-md sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold leading-snug break-words">{detail.item_title}</h1>
-            <p className="mt-1 text-sm text-slate-gray">{formatRp(detail.item_market_price)} nilai pasar</p>
+            <h1 className="text-xl font-bold leading-snug tracking-tight text-gray-900 break-words">{detail.item_title}</h1>
+            <p className="mt-1 text-sm text-gray-600">{formatRp(detail.item_market_price)} nilai pasar</p>
           </div>
           <StatusBadge status={detail.status} />
         </div>
 
-        <div className="mt-4 divide-y divide-hairline border-t border-hairline">
+        <div className="mt-4 divide-y divide-gray-200 border-t border-gray-200">
           <Row label="Peminjam">{detail.borrower_name}</Row>
           <Row label="Pemilik">{detail.lender_name}</Row>
           <Row label="Peranmu">
@@ -144,7 +158,17 @@ export function TransactionDetailPage() {
           {detail.returned_at && <Row label="Dikembalikan">{formatTanggal(detail.returned_at)}</Row>}
           {point && (
             <Row label="Titik temu">
-              {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+              <span className="inline-flex flex-wrap items-center justify-end gap-1.5">
+                {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+                <a
+                  href={mapsUrl(point.lat.toFixed(5), point.lng.toFixed(5))}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 rounded-lg bg-primary-light px-2 py-0.5 text-[13px] font-bold text-primary-dark transition-colors hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  <MapPin size={13} /> Buka di Maps
+                </a>
+              </span>
             </Row>
           )}
           {detail.notes && <Row label="Catatan">{detail.notes}</Row>}
@@ -153,8 +177,8 @@ export function TransactionDetailPage() {
 
       {/* AKSI STATUS */}
       {detail.status === "pending" && (isLender || isBorrower) && (
-        <div className="rounded-2xl border border-hairline bg-paper p-5 shadow-linkcard">
-          <p className="text-sm font-bold">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-bold text-gray-900">
             {isLender ? "Pengajuan masuk — setujui atau tolak" : "Menunggu persetujuan pemilik"}
           </p>
           {isLender && (
@@ -163,9 +187,9 @@ export function TransactionDetailPage() {
                 Setujui
               </PrimaryButton>
               <button
-                onClick={() => doAction("rejected")}
+                onClick={() => setConfirmAction("rejected")}
                 disabled={!!acting}
-                className="flex-1 rounded-lg border border-hairline px-4 py-2.5 text-[15px] font-semibold text-danger-text transition-all duration-150 hover:bg-danger-bg active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-bg focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-[15px] font-semibold text-danger-text shadow-sm transition-all duration-150 hover:bg-danger-bg hover:shadow-md active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-bg focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {acting === "rejected" ? "Menolak..." : "Tolak"}
               </button>
@@ -173,9 +197,9 @@ export function TransactionDetailPage() {
           )}
           {isBorrower && (
               <button
-                onClick={() => doAction("cancelled")}
+                onClick={() => setConfirmAction("cancelled")}
                 disabled={!!acting}
-                className="mt-3 w-full rounded-lg border border-hairline px-4 py-2.5 text-[15px] font-semibold text-slate-gray transition-all duration-150 hover:bg-pebble active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-blue/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-3 w-full rounded-lg border border-gray-200 px-4 py-2.5 text-[15px] font-semibold text-gray-600 transition-all duration-150 hover:bg-gray-100 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {acting === "cancelled" ? "Membatalkan..." : "Batalkan pengajuan"}
               </button>
@@ -189,9 +213,9 @@ export function TransactionDetailPage() {
       )}
 
       {detail.status === "active" && (isLender || isBorrower) && (
-        <div className="rounded-2xl border border-hairline bg-paper p-5 shadow-linkcard">
-          <p className="text-sm font-bold">Barang sedang dipinjam</p>
-          <p className="mt-1 text-[13px] text-slate-gray">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-bold text-gray-900">Barang sedang dipinjam</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-gray-600">
             Setelah barang kembali, salah satu pihak menandai selesai.
           </p>
           <DarkButton onClick={() => doAction("returned")} isLoading={acting === "returned"} disabled={!!acting} className="mt-3 w-full">
@@ -207,8 +231,8 @@ export function TransactionDetailPage() {
 
       {/* REVIEW */}
       {detail.status === "returned" && (isLender || isBorrower) && (
-        <div className="rounded-2xl border border-hairline bg-paper p-5 shadow-linkcard">
-          <p className="text-sm font-bold">Beri ulasan</p>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-bold text-gray-900">Beri ulasan</p>
           {reviewDone ? (
             <p className="mt-2 rounded-lg bg-success-bg px-3 py-2 text-sm font-medium text-success-text">
               Terima kasih! Ulasanmu tersimpan dan memengaruhi Trust Score.
@@ -222,7 +246,7 @@ export function TransactionDetailPage() {
                     type="button"
                     onClick={() => setRating(n)}
                     aria-label={`${n} bintang`}
-                    className={`rounded transition-transform duration-150 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-blue/50 ${n <= rating ? "text-signal-blue" : "text-mist-gray"}`}
+                    className={`rounded transition-transform duration-150 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${n <= rating ? "text-primary" : "text-gray-300"}`}
                   >
                     <Star size={26} fill={n <= rating ? "currentColor" : "none"} />
                   </button>
@@ -248,6 +272,20 @@ export function TransactionDetailPage() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmAction !== null}
+        title={confirmAction === "rejected" ? "Tolak pengajuan?" : "Batalkan pengajuan?"}
+        message={
+          confirmAction === "rejected"
+            ? "Peminjam akan diberi tahu bahwa pengajuannya ditolak."
+            : "Pengajuan akan dibatalkan dan pemilik tidak perlu merespons."
+        }
+        confirmLabel={confirmAction === "rejected" ? "Ya, tolak" : "Ya, batalkan"}
+        loading={acting !== null}
+        onConfirm={() => doAction(confirmAction)}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }

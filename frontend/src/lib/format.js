@@ -23,6 +23,28 @@ export function formatTanggal(iso) {
   }
 }
 
+/** Waktu relatif Bahasa Indonesia: "baru saja", "3 jam lalu", "kemarin", dst. */
+export function formatRelatif(iso) {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return "";
+  const diff = Date.now() - t;
+  if (diff < 0) return formatTanggal(iso);
+  const menit = Math.floor(diff / 60000);
+  if (menit < 1) return "baru saja";
+  if (menit < 60) return `${menit} mnt lalu`;
+  const jam = Math.floor(menit / 60);
+  if (jam < 24) return `${jam} jam lalu`;
+  const hari = Math.floor(jam / 24);
+  if (hari === 1) return "kemarin";
+  if (hari < 7) return `${hari} hari lalu`;
+  return formatTanggal(iso);
+}
+
+/** URL Google Maps Search untuk koordinat — dibuka di tab baru. */
+export function mapsUrl(lat, lng) {
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+}
 /** Parse "POINT(lng lat)" -> { lat, lng } | null */
 export function parsePointText(text) {
   if (!text || typeof text !== "string") return null;
