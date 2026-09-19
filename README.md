@@ -2,11 +2,11 @@
 ### Campus Circular Resource Network
 *"From Idle Resources to Shared Opportunities"*
 
-Submission untuk **GAYATAMA 5 International Web Technology Competition** — Universitas Negeri Surabaya.
+Submission untuk **GAYATAMA 5 International Web Technology Competition** Universitas Negeri Surabaya.
 
 ---
 
-## 🔗 Tautan Penting
+## Tautan Penting
 
 | | Link |
 |---|---|
@@ -17,7 +17,7 @@ Submission untuk **GAYATAMA 5 International Web Technology Competition** — Uni
 
 ---
 
-## 📖 Tentang Proyek
+## Tentang Proyek
 
 ShareKampus adalah platform digital untuk sirkulasi sumber daya pendidikan antar mahasiswa. Alih-alih membeli barang baru yang hanya dipakai sebentar (buku, alat lab, kalkulator, dsb), mahasiswa dapat meminjam atau menukar (barter) barang dari mahasiswa lain di sekitar kampus, melalui mekanisme yang kami sebut **Campus Circular Loop**: satu barang terus bersirkulasi ke banyak mahasiswa berbeda selama masih memiliki nilai guna.
 
@@ -25,30 +25,30 @@ Proyek ini dikembangkan untuk menjawab 4 kesenjangan yang diidentifikasi di ling
 
 | Kesenjangan | Solusi di ShareKampus |
 |---|---|
-| **Economic Gap** — mahasiswa membeli barang yang cuma dipakai sementara | Peminjaman & barter sebagai alternatif membeli baru |
-| **Utilization Gap** — barang masih layak pakai tapi menganggur | Sirkulasi barang antar mahasiswa lewat listing |
-| **Access Gap** — informasi barang tersedia tidak terpusat | Pencarian berbasis lokasi (geofencing) & kata kunci |
-| **Trust Gap** — belum ada mekanisme reputasi | Trust Score Engine berbasis riwayat transaksi & ulasan |
+| **Economic Gap** mahasiswa membeli barang yang cuma dipakai sementara | Peminjaman & barter sebagai alternatif membeli baru |
+| **Utilization Gap** barang masih layak pakai tapi menganggur | Sirkulasi barang antar mahasiswa lewat listing |
+| **Access Gap** informasi barang tersedia tidak terpusat | Pencarian berbasis lokasi (geofencing) & kata kunci |
+| **Trust Gap** belum ada mekanisme reputasi | Trust Score Engine berbasis riwayat transaksi & ulasan |
 
 ### Kesesuaian dengan SDGs
-- **SDG 4 — Pendidikan Berkualitas**: memperluas akses sumber daya pendidikan tanpa harus membeli baru
-- **SDG 12 — Konsumsi dan Produksi Bertanggung Jawab**: memperpanjang masa guna barang, mengurangi konsumsi baru yang tidak perlu
+- **SDG 4 Pendidikan Berkualitas**: memperluas akses sumber daya pendidikan tanpa harus membeli baru
+- **SDG 12 Konsumsi dan Produksi Bertanggung Jawab**: memperpanjang masa guna barang, mengurangi konsumsi baru yang tidak perlu
 
 ---
 
-## ✨ Fitur Utama
+## Fitur Utama
 
-1. **Autentikasi & Profil** — registrasi (validasi domain email kampus), login, profil pengguna
-2. **Listing Barang** — unggah barang untuk dipinjamkan/dibarter, lengkap kategori, harga pasar, foto, lokasi
-3. **Pencarian Berbasis Lokasi** — temukan barang dalam radius tertentu dari posisi pengguna (geospasial PostGIS), plus pencarian kata kunci
-4. **Peminjaman & Barter** — alur pengajuan → persetujuan pemilik → penggunaan → pengembalian
-5. **Manajemen Transaksi** — status transaksi lengkap (`pending`, `active`, `returned`, `rejected`, `cancelled`), penjadwalan waktu & lokasi serah-terima
-6. **Trust Score Engine** — reputasi pengguna dihitung dari rata-rata rating, ketepatan waktu pengembalian, dan rasio penyelesaian transaksi
-7. **Student Expense Saver** — estimasi total penghematan komunitas dari transaksi yang berhasil diselesaikan
+1. **Autentikasi & Profil** registrasi (validasi domain email kampus), login, profil pengguna
+2. **Listing Barang** unggah barang untuk dipinjamkan/dibarter, lengkap kategori, harga pasar, foto, lokasi
+3. **Pencarian Berbasis Lokasi** temukan barang dalam radius tertentu dari posisi pengguna (geospasial PostGIS), plus pencarian kata kunci
+4. **Peminjaman & Barter** alur pengajuan → persetujuan pemilik → penggunaan → pengembalian
+5. **Manajemen Transaksi** status transaksi lengkap (`pending`, `active`, `returned`, `rejected`, `cancelled`), penjadwalan waktu & lokasi serah-terima
+6. **Trust Score Engine** reputasi pengguna dihitung dari rata-rata rating, ketepatan waktu pengembalian, dan rasio penyelesaian transaksi
+7. **Student Expense Saver** estimasi total penghematan komunitas dari transaksi yang berhasil diselesaikan
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Layer | Teknologi | Peran |
 |---|---|---|
@@ -64,15 +64,15 @@ Detail lengkap arsitektur & model matematis (Haversine/Geofencing, Trust Score, 
 
 ---
 
-## 🚀 Installation Guide
+## Installation Guide
 
-Proyek ini menggunakan struktur **monorepo** — `backend/` dan `frontend/` sebagai dua project terpisah dalam satu repository.
+Proyek ini menggunakan struktur **monorepo** `backend/` dan `frontend/` sebagai dua project terpisah dalam satu repository.
 
 ### Prasyarat
 - [Go](https://go.dev/) 1.25 atau lebih baru
 - [Node.js](https://nodejs.org/) 18 atau lebih baru
 - [Docker](https://www.docker.com/) (opsional, untuk menjalankan backend via container)
-- Akun [Supabase](https://supabase.com/) (untuk database & auth — proyek ini sudah punya instance sendiri, kredensial di-share terpisah untuk keperluan evaluasi)
+- Akun [Supabase](https://supabase.com/) (untuk database & auth proyek ini sudah punya instance sendiri, kredensial dishare terpisah untuk keperluan evaluasi)
 
 ### 1. Clone Repository
 ```bash
@@ -126,11 +126,11 @@ Buka `http://localhost:5173`. Pastikan backend sudah berjalan lebih dulu di `loc
 
 ### 4. Setup Database (khusus untuk instance Supabase baru)
 
-Jalankan seluruh isi [`note/ERD.sql`](./note/ERD.sql) di Supabase SQL Editor — file ini berisi skema tabel lengkap beserta fungsi PostGIS (`get_nearby_items`, `recalculate_trust_score`, `get_trust_score_breakdown`, `get_expense_saver_total`).
+Jalankan seluruh isi [`note/ERD.sql`](./note/ERD.sql) di Supabase SQL Editor file ini berisi skema tabel lengkap beserta fungsi PostGIS (`get_nearby_items`, `recalculate_trust_score`, `get_trust_score_breakdown`, `get_expense_saver_total`).
 
 ---
 
-## 📚 Technical Documentation
+## Technical Documentation
 
 Dokumentasi teknis lengkap tersedia di folder [`note/`](./note):
 
@@ -140,9 +140,9 @@ Dokumentasi teknis lengkap tersedia di folder [`note/`](./note):
 | [`ARCH.md`](./note/ARCH.md) | Arsitektur sistem, diagram, model matematis (Haversine, Trust Score, Expense Saver) |
 | [`ERD.sql`](./note/ERD.sql) | Skema database lengkap (tabel, fungsi PostGIS) |
 | [`ERD.puml`](./note/ERD.puml) | Diagram ERD (PlantUML) |
-| [`userflow.puml`](./note/userflow.puml) | Diagram alur pengguna — Campus Circular Loop |
+| [`userflow.puml`](./note/userflow.puml) | Diagram alur pengguna Campus Circular Loop |
 | [`DESIGN_SYSTEM.md`](./note/DESIGN_SYSTEM.md) | Palet warna, tipografi, komponen UI |
-| [`FRONTEND_GUIDE.md`](./FRONTEND_GUIDE.md) | Dokumentasi API lengkap — endpoint, request/response, kode error |
+| [`FRONTEND_GUIDE.md`](./FRONTEND_GUIDE.md) | Dokumentasi API lengkap endpoint, request/response, kode error |
 | [`TASK.md`](./note/TASK.md) | Rencana kerja & checklist progres pengembangan |
 | [`GUIDELINE.md`](./note/GUIDELINE.md) | Konvensi git, code style, secrets management |
 
@@ -170,7 +170,7 @@ Detail lengkap format request/response ada di [`FRONTEND_GUIDE.md`](./FRONTEND_G
 
 ---
 
-## 👥 Tim
+## Tim
 
 | Nama | NIM | Peran |
 |---|---|---|
@@ -180,3 +180,21 @@ Detail lengkap format request/response ada di [`FRONTEND_GUIDE.md`](./FRONTEND_G
 | Kaysa Karuma Amalia | 24051204011 | Anggota |
 
 Program Studi Teknik Informatika, Universitas Negeri Surabaya.
+
+## Pembimbing
+| Rifqi Abdillah, M.Kom. | 199911012024061001 | Dosen Pembimbing Syntesa |
+
+---
+
+## Akun Demo (untuk Evaluasi Juri)
+
+Gunakan akun berikut untuk mencoba fitur yang memerlukan login (Listing Barang, Peminjaman & Barter, Trust Score, dsb) di [Live Demo](https://sharekampus.vercel.app):
+
+| Field | Value |
+|---|---|
+| **Email** | `123@mhs.unesa.ac.id` |
+| **Password** | `qwertyui` |
+
+> **Catatan:** Ini adalah akun dummy/seed data khusus untuk keperluan demo dan evaluasi, bukan akun mahasiswa asli. Password sengaja dibuat sederhana untuk kemudahan pengujian juri dan tidak merepresentasikan kebijakan keamanan password produksi (validasi kompleksitas password tetap diterapkan pada alur registrasi normal).
+
+Jika ingin menguji alur registrasi dari awal, gunakan email dengan domain kampus yang valid (`@mhs.unesa.ac.id` atau domain kampus lain yang didukung) pada endpoint `POST /auth/register`.
