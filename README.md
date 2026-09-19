@@ -182,8 +182,11 @@ Detail lengkap format request/response ada di [`FRONTEND_GUIDE.md`](./FRONTEND_G
 Program Studi Teknik Informatika, Universitas Negeri Surabaya.
 
 ## Pembimbing
-| Rifqi Abdillah, M.Kom. | 199911012024061001 | Dosen Pembimbing Syntesa |
+## Pembimbing
 
+| Nama | NIP/NIDN | Peran |
+|---|---|---|
+| Rifqi Abdillah, M.Kom. | 199911012024061001 | Dosen Pembimbing |
 ---
 
 ## Akun Demo (untuk Evaluasi Juri)
