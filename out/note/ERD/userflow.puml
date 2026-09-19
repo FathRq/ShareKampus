@@ -1,75 +1,75 @@
 @startuml ShareKampus_UserFlow
 title ShareKampus — User Flow (Campus Circular Loop)
 
-|Mahasiswa Baru|
+|New Student|
 start
-:Buka ShareKampus;
-:Lihat katalog barang terdekat\n(GET /items/nearby, tanpa login);
+:Open ShareKampus;
+:Browse nearby item catalog\n(GET /items/nearby, no login required);
 
-if (Tertarik pinjam barang?) then (ya)
-  :Daftar akun\n(POST /auth/register)\n-- validasi domain email kampus --;
+if (Interested in borrowing an item?) then (yes)
+  :Register account\n(POST /auth/register)\n-- campus email domain validation --;
   :Login\n(POST /auth/login);
-else (belum, cuma lihat-lihat)
+else (not yet, just browsing)
   stop
 endif
 
-|Peminjam|
-:Pilih barang yang diinginkan;
-:Ajukan permintaan pinjam/barter\n(POST /transactions)\n-- status: pending --;
+|Borrower|
+:Select the desired item;
+:Submit a borrow/barter request\n(POST /transactions)\n-- status: pending --;
 note right
-  Barang TETAP terlihat "available"
-  bagi mahasiswa lain -- bisa ada
-  beberapa permintaan pending sekaligus
+  The item REMAINS visible as "available"
+  to other students -- multiple pending
+  requests can exist simultaneously
 end note
-:Tunggu persetujuan pemilik;
+:Wait for owner's approval;
 
-|Pemilik Barang|
-:Terima notifikasi permintaan;
-if (Setujui peminjam?) then (approve)
+|Item Owner|
+:Receive the request notification;
+if (Approve the borrower?) then (approve)
   :Approve\n(PATCH /transactions/:id/status\nstatus: active);
-  :Barang otomatis terkunci\n(items.status = on_transaction);
-else (tolak)
+  :Item is automatically locked\n(items.status = on_transaction);
+else (reject)
   :Reject\n(PATCH /transactions/:id/status\nstatus: rejected);
   stop
 endif
 
-|Peminjam|
-:Ambil barang dari pemilik\n(ketemu langsung di kampus);
-:Gunakan barang selama masa pinjam;
+|Borrower|
+:Pick up the item from the owner\n(meet in person on campus);
+:Use the item during the loan period;
 
-|Peminjam #LightYellow|
-:Kembalikan barang;
+|Borrower #LightYellow|
+:Return the item;
 
 fork
-  |Peminjam|
-  :Tandai selesai\n(PATCH /transactions/:id/status\nstatus: returned);
+  |Borrower|
+  :Mark as completed\n(PATCH /transactions/:id/status\nstatus: returned);
 fork again
-  |Pemilik Barang|
-  :Tandai selesai\n(PATCH /transactions/:id/status\nstatus: returned);
+  |Item Owner|
+  :Mark as completed\n(PATCH /transactions/:id/status\nstatus: returned);
 end fork
 note right
-  Siapa saja (peminjam ATAU pemilik)
-  boleh menandai returned duluan
+  Either party (borrower OR owner)
+  may mark it as returned first
 end note
 
-:Barang otomatis terbuka lagi\n(items.status = available);
-:Trust Score kedua pihak\ndihitung ulang otomatis\n(recalculate_trust_score);
+:Item automatically becomes\navailable again\n(items.status = available);
+:Both parties' Trust Score\nis automatically recalculated\n(recalculate_trust_score);
 
-|Peminjam|
-:Beri ulasan untuk pemilik\n(POST /reviews)\n-- rating 1-5 + komentar --;
+|Borrower|
+:Leave a review for the owner\n(POST /reviews)\n-- rating 1-5 + comment --;
 note right
-  Hanya bisa 1x per transaksi,
-  hanya untuk transaksi berstatus returned
+  Only allowed once per transaction,
+  and only for transactions with status returned
 end note
-:Trust Score pemilik\ndihitung ulang lagi\n(termasuk rata-rata rating);
+:Owner's Trust Score\nis recalculated again\n(now including the average rating);
 
-|Mahasiswa Lain|
-:Lihat profil pemilik sebelum pinjam\n(GET /users/:id/trust-score)\n-- rata-rata rating, rasio tepat waktu, dst --;
-:Barang yang sama kini bisa\ndipinjam mahasiswa berikutnya;
+|Other Students|
+:View the owner's profile before borrowing\n(GET /users/:id/trust-score)\n-- average rating, on-time ratio, etc. --;
+:The same item can now be\nborrowed by the next student;
 note right
-  Inilah "Campus Circular Loop" --
-  satu barang terus bersirkulasi
-  ke banyak mahasiswa berbeda
+  This is the "Campus Circular Loop" --
+  a single item keeps circulating
+  among many different students
 end note
 
 stop
