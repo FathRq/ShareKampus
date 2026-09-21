@@ -10,12 +10,25 @@ Submission untuk **GAYATAMA 5 International Web Technology Competition** Univers
 
 | | Link |
 |---|---|
-| **Live Demo (Frontend)** | https://sharekampus.vercel.app |
+| **Live Demo (Frontend)** | www.sharekampus.my.id|
 | **Live API (Backend)** | https://sharekampus-backend-b7fa8.containers.snapdeploy.app |
 | **Dokumentasi Teknis Lengkap** | [`note/`](./note) |
 | **Dokumentasi API untuk Integrasi** | [`FRONTEND_GUIDE.md`](./FRONTEND_GUIDE.md) |
 
 ---
+
+## Akun Demo (untuk Evaluasi Juri)
+
+Gunakan akun berikut untuk mencoba fitur yang memerlukan login (Listing Barang, Peminjaman & Barter, Trust Score, dsb) di [Live Demo](www.sharekampus.my.id):
+
+| Field | Value |
+|---|---|
+| **Email** | `123@mhs.unesa.ac.id` |
+| **Password** | `qwertyui` |
+
+> **Catatan:** Ini adalah akun dummy/seed data khusus untuk keperluan demo dan evaluasi, bukan akun mahasiswa asli. Password sengaja dibuat sederhana untuk kemudahan pengujian juri dan tidak merepresentasikan kebijakan keamanan password produksi (validasi kompleksitas password tetap diterapkan pada alur registrasi normal).
+
+Jika ingin menguji alur registrasi dari awal, gunakan email dengan domain kampus yang valid (`@mhs.unesa.ac.id` atau domain kampus lain yang didukung) pada endpoint `POST /auth/register`.
 
 ## Tentang Proyek
 
@@ -187,16 +200,3 @@ Program Studi Teknik Informatika, Universitas Negeri Surabaya.
 |---|---|---|
 | Rifqi Abdillah, M.Kom. | 199911012024061001 | Dosen Pembimbing |
 ---
-
-## Akun Demo (untuk Evaluasi Juri)
-
-Gunakan akun berikut untuk mencoba fitur yang memerlukan login (Listing Barang, Peminjaman & Barter, Trust Score, dsb) di [Live Demo](https://sharekampus.vercel.app):
-
-| Field | Value |
-|---|---|
-| **Email** | `123@mhs.unesa.ac.id` |
-| **Password** | `qwertyui` |
-
-> **Catatan:** Ini adalah akun dummy/seed data khusus untuk keperluan demo dan evaluasi, bukan akun mahasiswa asli. Password sengaja dibuat sederhana untuk kemudahan pengujian juri dan tidak merepresentasikan kebijakan keamanan password produksi (validasi kompleksitas password tetap diterapkan pada alur registrasi normal).
-
-Jika ingin menguji alur registrasi dari awal, gunakan email dengan domain kampus yang valid (`@mhs.unesa.ac.id` atau domain kampus lain yang didukung) pada endpoint `POST /auth/register`.
