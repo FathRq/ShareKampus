@@ -28,7 +28,7 @@ Gunakan akun berikut untuk mencoba fitur yang memerlukan login (Listing Barang, 
 
 > **Catatan:** Ini adalah akun dummy/seed data khusus untuk keperluan demo dan evaluasi, bukan akun mahasiswa asli. Password sengaja dibuat sederhana untuk kemudahan pengujian juri dan tidak merepresentasikan kebijakan keamanan password produksi (validasi kompleksitas password tetap diterapkan pada alur registrasi normal).
 
-Jika ingin menguji alur registrasi dari awal, gunakan email dengan domain kampus yang valid (`@mhs.unesa.ac.id` atau domain kampus lain yang didukung) pada endpoint `POST /auth/register`.
+Jika ingin menguji alur registrasi dari awal, gunakan email dengan domain kampus yang valid (`@mhs.unesa.ac.id`) pada endpoint `POST /auth/register`.
 
 ## Tentang Proyek
 
